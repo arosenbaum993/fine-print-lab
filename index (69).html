@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Fine Print Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: black MCA band on top, cool gray workspace, forms rendered as plain "paper" documents that feel like the real thing */
+:root{
+  --bg:#e9ebee; --ink:#17191c; --muted:#5a6068; --line:#a3a9b0; --soft:#d5d9de;
+  --paper:#fcfcfa; --field:#ffffff; --fieldline:#7d848c;
+  --band:#111214; --bandInk:#f2efe8;
+  --red:#b11f2a; --redSoft:#f6dcde; --gold:#b98a1f; --goldSoft:#f6ecd2; --slate:#4b5865; --slateSoft:#e1e6eb;
+  --good:#2d6a43; --goodSoft:#dcefe2; --flag:#fff1c2;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",Arial,sans-serif;
+  --mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121315; --ink:#e8e8e4; --muted:#a3a8ae; --line:#4b5057; --soft:#2b2f34;
+  --paper:#1c1e21; --field:#25282c; --fieldline:#6a7078;
+  --red:#e2606a; --redSoft:#3a1f22; --gold:#e0b44f; --goldSoft:#382d14; --slate:#9fb0c0; --slateSoft:#232a31;
+  --good:#6fc58e; --goodSoft:#17301f; --flag:#4a3c10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121315; --ink:#e8e8e4; --muted:#a3a8ae; --line:#4b5057; --soft:#2b2f34;
+  --paper:#1c1e21; --field:#25282c; --fieldline:#6a7078;
+  --red:#e2606a; --redSoft:#3a1f22; --gold:#e0b44f; --goldSoft:#382d14; --slate:#9fb0c0; --slateSoft:#232a31;
+  --good:#6fc58e; --goodSoft:#17301f; --flag:#4a3c10; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--band)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.band{background:var(--band);color:var(--bandInk);border-bottom:5px solid var(--red);box-shadow:0 5px 0 var(--gold)}
+header.band .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:14px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.02em;line-height:1;text-transform:uppercase}
+.brand small{display:block;font-family:var(--body);font-weight:600;font-size:.78rem;letter-spacing:.12em;color:#c9b27a;margin-top:4px}
+.btn{font:inherit;font-weight:700;border-radius:4px;border:2px solid var(--ink);background:var(--ink);color:var(--bg);padding:.55em 1em;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.band .btn{border-color:var(--gold);background:transparent;color:var(--bandInk)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+main{padding-block:28px 60px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.1;margin:0}
+h2{font-size:1.9rem;text-transform:uppercase;letter-spacing:.01em}
+.lede{color:var(--muted);max-width:62ch;margin:.4em 0 0}
+.step{font-family:var(--mono);font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--red);font-weight:600}
+section+section{margin-top:36px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:14px}
+.pick{text-align:left;font:inherit;color:inherit;background:var(--paper);border:2px solid var(--soft);border-radius:6px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.pick:hover{border-color:var(--line)}
+.pick[aria-pressed="true"]{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.pick h3{font-size:1.45rem}
+.pick .meta{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.pick .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.tag{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:99px;background:var(--slateSoft);color:var(--slate)}
+.pick:disabled{opacity:.45;cursor:not-allowed}
+.habits{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:14px}
+.habit{border-left:4px solid var(--gold);padding:4px 12px}
+.habit b{font-family:var(--display);font-size:1.2rem;text-transform:uppercase;display:block}
+table.log{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+.logbox{overflow-x:auto;margin-top:12px;background:var(--paper);border:1px solid var(--soft);border-radius:6px}
+table.log th,table.log td{padding:8px 10px;border-bottom:1px solid var(--soft);text-align:left;white-space:nowrap}
+table.log th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.empty{padding:16px;color:var(--muted)}
+.signin{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:14px;max-width:720px}
+.sf{display:flex;flex-direction:column;gap:4px}
+.sf label{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.sf input{font:inherit;padding:.55em .7em;border:2px solid var(--line);border-radius:4px;background:var(--field);color:var(--ink)}
+.signmsg{color:var(--red);font-weight:700;margin:.6em 0 0}
+/* scenario + form */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:16px}
+.scenario{background:var(--goldSoft);border:1px solid var(--gold);border-radius:6px;padding:14px 16px;margin-bottom:18px}
+.scenario b{font-family:var(--display);font-size:1.15rem;text-transform:uppercase;letter-spacing:.03em}
+.doc{background:var(--paper);border:1px solid var(--line);box-shadow:0 2px 0 var(--soft);padding:22px clamp(14px,3vw,34px) 28px;font-size:.92rem;max-width:880px}
+.dochead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:3px double var(--ink);padding-bottom:10px;margin-bottom:14px}
+.agency{font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.82rem}
+.doctitle{font-family:var(--body);font-weight:700;font-size:1.25rem;line-height:1.2}
+.formno{font-family:var(--mono);font-size:.74rem;text-align:right;color:var(--muted)}
+.sec{border:1px solid var(--fieldline);margin-top:14px}
+.sechead{background:var(--soft);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;padding:5px 9px;border-bottom:1px solid var(--fieldline)}
+.row{display:grid;grid-template-columns:repeat(12,1fr)}
+.fld{grid-column:span var(--w,12);border-right:1px solid var(--fieldline);border-bottom:1px solid var(--fieldline);padding:5px 8px 7px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.row .fld:last-child{border-right:0}
+.sec>.row:last-child .fld,.sec>.fld:last-child{border-bottom:0}
+@media (max-width:640px){.fld{grid-column:span 12;border-right:0}}
+.fld label,.fld .lab{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.req{color:var(--red)}
+.fld input[type=text],.fld input[type=email],.fld input[type=password],.fld select{font:inherit;font-family:var(--mono);font-size:.9rem;background:var(--field);color:var(--ink);border:0;border-bottom:1px solid var(--fieldline);padding:3px 4px;width:100%;min-width:0}
+.opts{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem}
+.opts label,.chk{font-size:.9rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink);display:flex;gap:6px;align-items:flex-start}
+.chk input,.opts input{margin-top:.25em;accent-color:var(--red)}
+.fine{font-size:.8rem;line-height:1.45;color:var(--ink)}
+.fine p{margin:.2em 0 .5em}
+.flagged{background:var(--flag)!important;outline:2px solid var(--gold);outline-offset:-2px}
+.decode{font:inherit;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--slate);color:var(--slate);background:transparent;border-radius:99px;padding:1px 9px;cursor:pointer;margin-left:6px;vertical-align:1px}
+.plain{display:block;margin:.35em 0 .6em;padding:7px 10px;background:var(--slateSoft);border-left:3px solid var(--slate);font-size:.85rem;color:var(--ink)}
+.terms{height:150px;overflow-y:auto;border:1px solid var(--fieldline);background:var(--field);padding:8px 10px}
+.avail{overflow-x:auto}
+.avail table{border-collapse:collapse;font-size:.82rem;min-width:520px}
+.avail th,.avail td{border:1px solid var(--soft);padding:4px 6px;text-align:center}
+.avail th{font-weight:700;font-size:.72rem;text-transform:uppercase}
+.submitrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;align-items:center}
+.submitrow .muted{color:var(--muted);font-size:.85rem}
+/* result */
+.verdict{border-radius:6px;padding:18px 20px;color:#fff;background:var(--slate)}
+.verdict.cost{background:var(--red)} .verdict.stop{background:var(--gold);color:#1a1405} .verdict.ok{background:var(--good)}
+.verdict h2{font-size:2.2rem}
+.verdict p{margin:.3em 0 0;max-width:62ch}
+.issues{display:grid;gap:12px;margin-top:16px}
+.issue{background:var(--paper);border:1px solid var(--soft);border-left:6px solid var(--slate);border-radius:6px;padding:14px 16px}
+.issue.cost{border-left-color:var(--red)} .issue.stop{border-left-color:var(--gold)} .issue.good{border-left-color:var(--good)}
+.pill{display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:2px 9px;border-radius:99px;background:var(--slateSoft);color:var(--slate)}
+.issue.cost .pill{background:var(--redSoft);color:var(--red)} .issue.stop .pill{background:var(--goldSoft);color:var(--gold)} .issue.good .pill{background:var(--goodSoft);color:var(--good)}
+.issue h3{font-size:1.35rem;margin:.35em 0 .2em}
+.issue p{margin:.25em 0;max-width:68ch}
+.issue .fix{font-size:.92rem;color:var(--muted)}
+.issue .fix b{color:var(--ink)}
+/* packet drawer */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--bg);border-left:3px solid var(--ink);z-index:30;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) 16px;box-shadow:-10px 0 30px rgba(0,0,0,.25)}
+.drawer .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:12px 14px;margin-top:12px;position:relative;overflow:hidden;font-size:.9rem}
+.card .ct{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.card .big{font-family:var(--mono);font-size:1rem;font-weight:600}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:.4em 0 0}
+.card dt{color:var(--muted);font-size:.8rem}
+.card dd{margin:0;font-family:var(--mono);font-size:.85rem;min-width:0;overflow-wrap:anywhere}
+.card::after{content:"PRACTICE";position:absolute;right:-8px;top:8px;transform:rotate(12deg);font-family:var(--display);font-weight:800;font-size:1.6rem;color:var(--red);opacity:.13;pointer-events:none}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:25}
+footer{color:var(--muted);font-size:.82rem;padding-block:0 30px}
+@media (prefers-reduced-motion:no-preference){.pick,.btn{transition:border-color .15s,background .15s}}
+</style>
+</head>
+<body>
+
+
+<header class="band"><div class="wrap">
+  <div class="brand">Fine Print Lab<small>MCA BUCCANEERS · REAL-WORLD FORMS PRACTICE</small></div>
+  <button class="btn" id="packetBtn" type="button" hidden>Open my packet</button>
+</div></header>
+
+<main class="wrap">
+  <!-- HOME -->
+  <div id="home">
+    <section>
+      <div class="step">Before you start</div>
+      <h2>Three habits this lab trains</h2>
+      <div class="habits">
+        <div class="habit"><b>Gather first</b>Have your documents in front of you before you fill in a single box. Never guess.</div>
+        <div class="habit"><b>Read before you agree</b>Every checkbox is a decision. Pre-checked boxes are someone else's decision.</div>
+        <div class="habit"><b>Finish every field</b>Blank means "rejected." If it doesn't apply, write N/A.</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="step">Sign in</div>
+      <h2>Who's practicing?</h2>
+      <div class="signin">
+        <div class="sf"><label for="stuName">Your name (first name and last initial)</label><input id="stuName" type="text" autocomplete="off" maxlength="40" placeholder="Example: Jordan T."></div>
+        <div class="sf"><label for="stuClass">Teacher and class period</label><input id="stuClass" type="text" autocomplete="off" maxlength="40" placeholder="Example: Nix, 3rd period"></div>
+      </div>
+      <p class="signmsg" id="signMsg" hidden>Type your name and class first so your teacher gets credit for your work.</p>
+    </section>
+
+    <section>
+      <div class="step">Step 1</div>
+      <h2>Choose who you are today</h2>
+      <p class="lede">You will never type your own personal information here. Each person comes with a document packet. Use it for every answer.</p>
+      <div class="grid" id="personaGrid"></div>
+    </section>
+
+    <section>
+      <div class="step">Step 2</div>
+      <h2>Choose a form</h2>
+      <p class="lede">Submit it the way you would in real life. Then see what happens next.</p>
+      <div class="grid" id="formGrid"></div>
+    </section>
+
+    <section>
+      <div class="step">My record</div>
+      <h2>Attempts on this device</h2>
+      <div class="logbox" id="logBox"></div>
+    </section>
+  </div>
+
+  <!-- FORM VIEW -->
+  <div id="formView" hidden>
+    <div class="toolbar">
+      <button class="btn ghost" type="button" id="backHome">← All forms</button>
+      <span class="meta" id="whoLine" style="font-family:var(--mono);font-size:.85rem;color:var(--muted)"></span>
+    </div>
+    <div class="scenario" id="scenario"></div>
+    <form id="theForm" novalidate></form>
+  </div>
+
+  <!-- RESULT -->
+  <div id="resultView" hidden>
+    <div id="verdict"></div>
+    <div class="issues" id="issues"></div>
+    <div class="submitrow">
+      <button class="btn red" type="button" id="fixBtn">Go back and fix it</button>
+      <button class="btn ghost" type="button" id="homeBtn">Pick another form</button>
+    </div>
+  </div>
+</main>
+<footer class="wrap">Practice site. Every person, business, agency, card, and number here is fictional. The state of "Coastal State" (CS) does not exist.</footer>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Document packet">
+  <div class="top"><h2 style="font-size:1.5rem" id="drawerTitle">Packet</h2><button class="btn ghost" type="button" id="closeDrawer">Close</button></div>
+  <div id="packet"></div>
+</aside>
+
+<script>
+(function(){
+/* ===== TEACHER TRACKING =====
+   Paste your Apps Script web app URL between the quotes.
+   Leave it empty and the site still works; it just won't send results to the Sheet. */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbzO4PjjbIikeRDTQJmOhs_oGXHC567vSrVxo3QHv8UyAHF6vzSM_vyHNWi_PNL0RECZhg/exec";
+/* ============================ */
+const $=s=>document.querySelector(s);
+const PERSONAS={
+  mason:{id:"mason",first:"Mason",middle:"James",last:"Wright",dob:"03/14/2011",age:15,grade:"10th",sex:"M",height:"5'9\"",eyes:"Brown",
+    blurb:"Plays trumpet in the marching band, volunteers at the animal shelter, has never had a paid job.",
+    addr:"418 Ridge Oak Lane",city:"Marsh Harbor",state:"CS",zip:"31599",phone:"(912) 555-0148",email:"mason.wright11@coastmail.com",ssn:"900-41-7726",
+    glasses:true,guardian:{name:"Linda Wright",rel:"Grandmother",phone:"(912) 555-0193"},
+    allow:{mon:["pm"],wed:["pm"],thu:["pm"],fri:["pm"],sat:["am","mid","pm"],sun:["mid","pm"]},
+    busy:{tue:"Tuesday is marching band rehearsal until 7:30 PM.",sun:"Sunday mornings he helps his grandmother run her booth at the farmers market."},
+    work:null,volunteer:"Marsh Harbor Animal Shelter, walking dogs and cleaning kennels, June to July 2025",
+    refs:[{name:"Curtis Lane",rel:"Band director, MCA",phone:"(912) 555-0127"},{name:"Angela Ford",rel:"Volunteer coordinator, animal shelter",phone:"(912) 555-0162"}],
+    eye:"Eye exam, 08/2026: corrective lenses REQUIRED for distance vision. Wears glasses daily."},
+  kayla:{id:"kayla",first:"Kayla",middle:"Renee",last:"Bennett",dob:"07/02/2009",age:17,grade:"12th",sex:"F",height:"5'4\"",eyes:"Hazel",
+    blurb:"Senior, worked one summer as a busser, tutors 6th graders at the library.",
+    addr:"27 Tidewater Court",city:"Marsh Harbor",state:"CS",zip:"31599",phone:"(912) 555-0175",email:"kayla.bennett@coastmail.com",ssn:"900-63-1180",
+    glasses:false,guardian:{name:"Michael Bennett",rel:"Father",phone:"(912) 555-0109"},
+    allow:{mon:["pm"],wed:["pm"],fri:["pm"],sat:["am","mid","pm"]},
+    busy:{tue:"Tuesday and Thursday evenings she tutors 6th graders at the library.",thu:"Tuesday and Thursday evenings she tutors 6th graders at the library.",sun:"Sunday is family day. She does not work Sundays."},
+    work:{emp:"Captain Ray's Seafood Shack",title:"Busser",dates:"06/2026 to 08/2026",why:"Returned to school"},
+    refs:[{name:"Ray Pittman",rel:"Former manager, Captain Ray's",phone:"(912) 555-0131"},{name:"Patrice Odom",rel:"English teacher, MCA",phone:"(912) 555-0186"}],
+    eye:"School vision screening, 09/2026: 20/20 both eyes. No correction needed."}
+};
+const FORMS={
+  permit:{title:"Learner's Permit Application",who:"Coastal State Dept. of Motor Licensing",band:"9th to 10th",tags:["Guardian signature","Documents","Medical questions"]},
+  job:{title:"Team Member Job Application",who:"Gator Grill (restaurant)",band:"9th to 12th",tags:["Availability","Work history","References"]},
+  stream:{title:"Free Trial Signup",who:"StreamVault (streaming app)",band:"9th to 12th",tags:["Auto-renew","Data sharing","Fine print"]}
+};
+let persona=null, formId=null, decodes=0;
+
+/* ---------- storage (per device only) ---------- */
+function getLog(){try{return JSON.parse(localStorage.getItem("fpl-log")||"[]")}catch(e){return[]}}
+function addLog(entry){try{const l=getLog();l.unshift(entry);localStorage.setItem("fpl-log",JSON.stringify(l.slice(0,50)))}catch(e){}}
+
+/* ---------- sign in ---------- */
+function loadSign(){try{$("#stuName").value=localStorage.getItem("fpl-name")||"";$("#stuClass").value=localStorage.getItem("fpl-class")||""}catch(e){}}
+["stuName","stuClass"].forEach(id=>document.getElementById(id).addEventListener("input",e=>{try{localStorage.setItem(id==="stuName"?"fpl-name":"fpl-class",e.target.value)}catch(_){} $("#signMsg").hidden=true}));
+function signedIn(){
+  const ok=$("#stuName").value.trim().length>1&&$("#stuClass").value.trim().length>1;
+  if(!ok){$("#signMsg").hidden=false;($("#stuName").value.trim()?$("#stuClass"):$("#stuName")).focus();$("#stuName").scrollIntoView({block:"center"})}
+  return ok;
+}
+function sendToSheet(payload){
+  if(!SHEET_URL)return;
+  try{fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)}).catch(()=>{})}catch(e){}
+}
+
+/* ---------- home ---------- */
+function renderHome(){
+  $("#personaGrid").innerHTML=Object.values(PERSONAS).map(p=>`
+    <button type="button" class="pick" data-p="${p.id}" aria-pressed="${persona&&persona.id===p.id}">
+      <h3>${p.first} ${p.last}</h3>
+      <span class="meta">Age ${p.age} · ${p.grade} grade · lives with ${p.guardian.rel.toLowerCase()}</span>
+      <span>${p.blurb}</span>
+    </button>`).join("");
+  $("#formGrid").innerHTML=Object.entries(FORMS).map(([k,f])=>`
+    <button type="button" class="pick" data-f="${k}" ${persona?"":"disabled"}>
+      <span class="meta">${f.who}</span>
+      <h3>${f.title}</h3>
+      <span class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</span>
+    </button>`).join("");
+  const log=getLog();
+  $("#logBox").innerHTML=log.length?`<table class="log"><thead><tr><th>When</th><th>Person</th><th>Form</th><th>Outcome</th><th>Problems</th><th>Decodes</th></tr></thead><tbody>${
+    log.map(r=>`<tr><td>${r.when}</td><td>${r.person}</td><td>${r.form}</td><td>${r.outcome}</td><td>${r.problems}</td><td>${r.decodes}</td></tr>`).join("")}</tbody></table>`
+    :`<div class="empty">No attempts yet. Your submissions will show up here.</div>`;
+}
+document.addEventListener("click",e=>{
+  const p=e.target.closest("[data-p]"); if(p){persona=PERSONAS[p.dataset.p];renderHome();return}
+  const f=e.target.closest("[data-f]"); if(f&&persona){if(!signedIn())return;openForm(f.dataset.f);return}
+  const d=e.target.closest(".decode"); if(d){
+    const box=d.nextElementSibling;
+    if(box&&box.classList.contains("plain")){box.hidden=!box.hidden}
+    else{const s=document.createElement("span");s.className="plain";s.textContent=d.dataset.plain;d.after(s);decodes++}
+  }
+});
+
+/* ---------- packet ---------- */
+function renderPacket(p){
+  $("#drawerTitle").textContent=p.first+"'s packet";
+  const card=(t,body)=>`<div class="card"><div class="ct">${t}</div>${body}</div>`;
+  const dl=o=>`<dl>${Object.entries(o).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`;
+  let h="";
+  h+=card("Certified Birth Certificate · Coastal State",dl({"Full name":`${p.first} ${p.middle} ${p.last}`,"Date of birth":p.dob,"Sex":p.sex,"Birthplace":"Marsh Harbor, CS"}));
+  h+=card("Social Security Card",`<div class="big">${p.ssn}</div><div>${(p.first+" "+p.middle+" "+p.last).toUpperCase()}</div>`);
+  h+=card("Student Record · McIntosh County Academy",dl({"Height":p.height,"Eye color":p.eyes,"Phone":p.phone,"Email":p.email}));
+  h+=card("Certificate of School Enrollment",`<div>${p.first} ${p.last} is enrolled full time in grade ${p.grade.replace(/\D/g,"")} at McIntosh County Academy for the 2026-27 school year.</div>`);
+  h+=card("Proof of Residency (2 documents)",`<div>1. Coastal Power utility bill, Sept. 2026<br>2. Lease agreement, current</div>${dl({"Name on both":p.guardian.name,"Address":`${p.addr}, ${p.city}, ${p.state} ${p.zip}`})}`);
+  h+=card("Parent / Guardian",dl({"Name":p.guardian.name,"Relationship":p.guardian.rel,"Phone":p.guardian.phone}));
+  h+=card("Vision Record",`<div>${p.eye}</div>`);
+  h+=card("Medical",`<div>No seizures, fainting, or conditions that affect driving.</div>`);
+  const days={mon:"Mon",tue:"Tue",wed:"Wed",thu:"Thu",fri:"Fri",sat:"Sat",sun:"Sun"},sh={am:"6-11 AM",mid:"11 AM-4 PM",pm:"4-10 PM"};
+  h+=card("My Weekly Schedule",`<div>School: Mon to Fri, 8:00 AM to 3:30 PM. Free to work only when listed below.</div>${dl(Object.fromEntries(Object.keys(days).map(d=>[days[d],(p.allow[d]||[]).map(s=>sh[s]).join(", ")||"Not available"])))}<div style="margin-top:6px">${[...new Set(Object.values(p.busy))].join(" ")}</div>`);
+  h+=card("Work & Volunteer History",p.work?dl({"Employer":p.work.emp,"Job title":p.work.title,"Dates":p.work.dates,"Reason left":p.work.why}):`<div><b>Paid jobs: none.</b><br>Volunteer: ${p.volunteer}</div>`);
+  h+=card("References (they agreed)",p.refs.map(r=>dl({"Name":r.name,"Relationship":r.rel,"Phone":r.phone})).join(""));
+  h+=card("Family Debit Card (on file with guardian's OK)",`<div class="big">Practice Debit •••• 4417</div><div>Guardian's rule: "Use it to start the trial, but this can never cost us money, and don't give our info away."</div>`);
+  $("#packet").innerHTML=h;
+}
+function openDrawer(){$("#drawer").hidden=false;$("#scrim").hidden=false;$("#closeDrawer").focus()}
+function closeDrawer(){$("#drawer").hidden=true;$("#scrim").hidden=true}
+$("#packetBtn").onclick=openDrawer;$("#closeDrawer").onclick=closeDrawer;$("#scrim").onclick=closeDrawer;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
+
+/* ---------- form builders ---------- */
+const F=(id,label,w,req=true,type="text",extra="")=>`<div class="fld" style="--w:${w}"><label for="${id}">${label}${req?' <span class="req">*</span>':""}</label><input type="${type}" id="${id}" name="${id}" autocomplete="off" ${extra}></div>`;
+const R=(name,label,w,opts,req=true)=>`<div class="fld" style="--w:${w}" id="${name}_wrap"><span class="lab">${label}${req?' <span class="req">*</span>':""}</span><div class="opts">${opts.map(o=>`<label><input type="radio" name="${name}" value="${o}"> ${o}</label>`).join("")}</div></div>`;
+const DEC=t=>`<button type="button" class="decode" data-plain="${t.replace(/"/g,"&quot;")}">Decode</button>`;
+
+function permitHTML(){return `<div class="doc">
+ <div class="dochead"><div><div class="agency">Coastal State · Department of Motor Licensing</div><div class="doctitle">Application for Instructional Permit (Class CP)</div></div><div class="formno">FORM DML-10<br>REV. 03/2026<br>Print clearly. <span class="req">*</span> = required</div></div>
+ <div class="fine"><p>Applicants under 18 must present a Certificate of School Enrollment and must have a parent or legal guardian complete Section F. Incomplete applications will be returned without processing.${DEC("If you're under 18, you need proof you're in school, and your parent or guardian has to fill out and sign the last section themselves. Leave anything blank and they hand the whole thing back.")}</p></div>
+ <div class="sec"><div class="sechead">Section A · Applicant Information (as shown on birth certificate)</div>
+  <div class="row">${F("p_last","Last name",4)}${F("p_first","First name",4)}${F("p_middle","Middle name",4,false)}</div>
+  <div class="row">${F("p_dob","Date of birth (MM/DD/YYYY)",4)}${R("p_sex","Sex",2,["M","F"])}${F("p_height","Height",3)}${F("p_eyes","Eye color",3)}</div>
+  <div class="row">${F("p_addr","Residence address (no P.O. boxes)",12)}</div>
+  <div class="row">${F("p_city","City",5)}${F("p_state","State",2)}${F("p_zip","ZIP",2)}${F("p_phone","Phone",3,false)}</div>
+  <div class="row">${F("p_ssn","Social Security Number",6)}<div class="fld" style="--w:6"><span class="lab">Organ donor (optional)</span><div class="opts"><label><input type="radio" name="p_donor" value="Yes"> Yes</label><label><input type="radio" name="p_donor" value="No"> No</label></div></div></div>
+ </div>
+ <div class="sec" id="p_docs_wrap"><div class="sechead">Section B · Documents Presented <span class="req">*</span> (check every document you are bringing)</div>
+  <div class="fld"><label class="chk"><input type="checkbox" id="p_doc_id"> Proof of identity (certified birth certificate or passport)</label>
+  <label class="chk"><input type="checkbox" id="p_doc_ssn"> Proof of Social Security Number</label>
+  <label class="chk"><input type="checkbox" id="p_doc_res"> Two (2) proofs of Coastal State residency</label>
+  <label class="chk"><input type="checkbox" id="p_doc_enr"> Certificate of School Enrollment (required if under 18)</label></div>
+ </div>
+ <div class="sec"><div class="sechead">Section C · Vision and Medical</div>
+  <div class="row">${R("p_lens","1. Do you wear corrective lenses (glasses or contacts) to drive or see at a distance?",12,["Yes","No"])}</div>
+  <div class="row">${R("p_seiz","2. Have you had a seizure, blackout, or loss of consciousness in the past 12 months?",12,["Yes","No"])}</div>
+  <div class="row">${R("p_cond","3. Do you have any physical or mental condition that may affect safe driving?",12,["Yes","No"])}</div>
+ </div>
+ <div class="sec"><div class="sechead">Section E · Applicant Certification</div>
+  <div class="fld fine"><p>I certify under penalty of law that the information on this application is true and correct. Knowingly making a false statement on this application is a misdemeanor and is grounds for denial, suspension, or cancellation of any license or permit.${DEC("By signing, you swear everything above is true. If you lie on this form, even on a medical question, it's a crime, and they can take away your permit or license.")}</p></div>
+  <div class="row">${F("p_sig","Applicant signature (type full legal name)",8)}${F("p_sigdate","Date (MM/DD/YYYY)",4)}</div>
+ </div>
+ <div class="sec"><div class="sechead">Section F · Parent / Guardian Consent (applicants under 18) · To be completed by parent or guardian only</div>
+  <div class="fld fine"><p>I am the parent or legal guardian of the applicant. I consent to the issuance of an instructional permit and agree to be jointly and severally liable with the minor for any damages caused by the minor's negligence or willful misconduct while operating a motor vehicle.${DEC("The adult signing here is agreeing that if the teen causes a crash or damage while driving, the adult can be held responsible and pay for it too. That's why only the adult can sign this, never the teen.")}</p></div>
+  <div class="row">${F("g_name","Parent / guardian printed name",6)}${F("g_rel","Relationship to applicant",6)}</div>
+  <div class="row">${F("g_sig","Parent / guardian signature",8)}${F("g_date","Date (MM/DD/YYYY)",4)}</div>
+ </div>
+ <div class="submitrow"><button class="btn red" type="submit">Submit application</button><span class="muted">Submitted forms go to the counter clerk. No changes after submitting.</span></div>
+</div>`}
+
+function jobHTML(){
+  const days=[["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]],sh=[["am","Morning<br>6 to 11 AM"],["mid","Midday<br>11 AM to 4 PM"],["pm","Evening<br>4 to 10 PM"]];
+  return `<div class="doc">
+ <div class="dochead"><div><div class="agency">Gator Grill · Store #214 Marsh Harbor</div><div class="doctitle">Application for Employment: Team Member</div></div><div class="formno">HR-01 · An Equal Opportunity Employer<br><span class="req">*</span> = required</div></div>
+ <div class="sec"><div class="sechead">Personal Information</div>
+  <div class="row">${F("j_first","First name",4)}${F("j_last","Last name",4)}${F("j_phone","Phone",4)}</div>
+  <div class="row">${F("j_email","Email",6,true,"email")}${F("j_addr","Street address, city, state, ZIP",6)}</div>
+  <div class="row">${R("j_age","Are you at least 16 years of age?",6,["Yes","No"])}${R("j_prev","Have you worked for Gator Grill before?",6,["Yes","No"])}</div>
+  <div class="row"><div class="fld" style="--w:12"><label for="j_position">Position desired <span class="req">*</span></label><select id="j_position"><option value="">Select one</option><option>Cashier / Front Counter</option><option>Kitchen / Cook</option><option>Dining Room / Host</option><option>Any position</option></select></div></div>
+ </div>
+ <div class="sec" id="j_avail_wrap"><div class="sechead">Availability <span class="req">*</span> · Check every shift you can work every week</div>
+  <div class="fld avail"><table><thead><tr><th></th>${days.map(d=>`<th>${d[1]}</th>`).join("")}</tr></thead><tbody>${
+   sh.map(s=>`<tr><th>${s[1]}</th>${days.map(d=>`<td><input type="checkbox" id="av_${d[0]}_${s[0]}" aria-label="${d[1]} ${s[0]}"></td>`).join("")}</tr>`).join("")}</tbody></table>
+  <div class="fine">Team members are scheduled based on the availability listed above. Failure to report for a scheduled shift without notice may result in termination.${DEC("Whatever you check here, they will schedule you for it. If you check a time you can't actually work and then miss that shift, you can be fired.")}</div></div>
+ </div>
+ <div class="sec"><div class="sechead">Employment History · Most recent first. If none, write N/A.</div>
+  <div class="row">${F("j_emp1","Employer",5)}${F("j_title1","Job title",3,false)}${F("j_dates1","Dates (MM/YYYY to MM/YYYY)",4,false)}</div>
+  <div class="row">${F("j_reason1","Reason for leaving",12,false)}</div>
+ </div>
+ <div class="sec"><div class="sechead">References · Not family members. People who know your work or character.</div>
+  <div class="row">${F("j_ref1","Reference 1: name",5)}${F("j_ref1rel","Relationship",4)}${F("j_ref1ph","Phone",3)}</div>
+  <div class="row">${F("j_ref2","Reference 2: name",5)}${F("j_ref2rel","Relationship",4)}${F("j_ref2ph","Phone",3)}</div>
+ </div>
+ <div class="sec"><div class="sechead">Applicant Statement</div>
+  <div class="fld fine"><p>I certify that all information provided is true and complete. I understand that any false statement or omission is cause for refusal of employment or immediate dismissal at any time it is discovered. I authorize Gator Grill to contact the references listed. If hired, I understand employment is at-will and may be terminated by either party at any time, with or without cause or notice.${DEC("If you lie on this application, they can refuse to hire you, or fire you later when they find out, even months from now. They will call your references. 'At-will' means they can let you go any time, and you can quit any time.")}</p>
+  <label class="chk" id="j_cert_wrap"><input type="checkbox" id="j_cert"> I have read and agree to the statement above. <span class="req">*</span></label>
+  <label class="chk"><input type="checkbox" id="j_promo"> Text me about Gator Grill deals (optional)</label></div>
+  <div class="row">${F("j_sig","Signature (type full name)",8)}${F("j_date","Date (MM/DD/YYYY)",4)}</div>
+ </div>
+ <div class="submitrow"><button class="btn red" type="submit">Submit application</button><span class="muted">The manager reviews applications in the order they come in.</span></div>
+</div>`}
+
+function streamHTML(){return `<div class="doc" style="max-width:620px">
+ <div class="dochead"><div><div class="agency">StreamVault</div><div class="doctitle">Start your FREE 7-day trial</div></div><div class="formno">Unlimited movies & shows.<br>Cancel anytime.*</div></div>
+ <div class="sec"><div class="sechead">Step 1 · Create your account</div>
+  <div class="row">${F("s_email","Email",12,true,"email")}</div>
+  <div class="row">${F("s_pass","Create a password (8+ characters)",12,true,"password")}</div>
+ </div>
+ <div class="sec" id="s_plan_wrap"><div class="sechead">Step 2 · Choose your plan</div>
+  <div class="fld"><div class="opts" style="flex-direction:column;gap:6px">
+   <label><input type="radio" name="s_plan" value="premium" checked> <span><b>Premium 4K</b> · <span class="tag" style="background:var(--goldSoft);color:var(--gold)">Most popular</span><br><span class="fine">FREE for 7 days, then $22.99/month</span></span></label>
+   <label><input type="radio" name="s_plan" value="basic"> <span><b>Basic HD</b><br><span class="fine">FREE for 7 days, then $9.99/month</span></span></label>
+  </div></div>
+ </div>
+ <div class="sec"><div class="sechead">Step 3 · Payment</div>
+  <div class="row"><div class="fld" style="--w:12"><label for="s_card">Payment method <span class="req">*</span></label><select id="s_card"><option value="">Select</option><option value="4417">Practice Debit •••• 4417 (on file)</option></select></div></div>
+  <div class="fld" id="s_opts_wrap">
+   <label class="chk" id="s_auto_wrap"><input type="checkbox" id="s_auto" checked> Keep my entertainment going! Automatically continue my membership at the plan rate after my trial.</label>
+   <label class="chk" id="s_share_wrap"><input type="checkbox" id="s_share" checked> Yes, share my info so StreamVault partners can send me offers I'll love.</label>
+   <label class="chk"><input type="checkbox" id="s_remind"> Send me a reminder 2 days before my trial ends.</label>
+  </div>
+ </div>
+ <div class="sec"><div class="sechead">Step 4 · Terms of Service</div>
+  <div class="fld"><div class="terms fine" tabindex="0" aria-label="Terms of Service">
+   <p><b>1. Membership.</b> Your free trial begins today. *Unless you cancel at least 48 hours before the trial ends, your membership will continue automatically and the payment method on file will be charged the then-current plan rate each month.${DEC("'Cancel anytime' has a catch: you have to cancel 2 days BEFORE the trial ends. If you forget, your card gets charged every month until you cancel.")}</p>
+   <p><b>2. Price changes.</b> StreamVault may change plan prices with 30 days' notice by email.</p>
+   <p><b>3. Your information.</b> We collect your viewing activity, device information, and contact details. If you consent, we may share this information with marketing partners.${DEC("They track what you watch and what device you use. If that 'share my info' box is checked, they can hand your info to other companies who will text and email you.")}</p>
+   <p><b>4. Dispute resolution.</b> You and StreamVault agree to resolve any dispute through final and binding individual arbitration rather than in court, and you waive any right to participate in a class action. You may opt out of this section by checking the box below.${DEC("If StreamVault charges you wrong, you can't take them to court or join a group lawsuit. A private arbitrator settles it instead. You CAN opt out of this with the box below, but most people never see it.")}</p>
+   <p><b>5. Refunds.</b> Payments are non-refundable, including partial months.</p>
+  </div>
+  <label class="chk"><input type="checkbox" id="s_arb"> Opt me out of binding arbitration (Section 4).</label>
+  <label class="chk" id="s_terms_wrap"><input type="checkbox" id="s_terms"> I have read and agree to the Terms of Service. <span class="req">*</span></label></div>
+ </div>
+ <div class="submitrow"><button class="btn red" type="submit">Start my free trial</button></div>
+</div>`}
+
+const SCEN={
+  permit:p=>`<b>Your task</b><br>${p.first} wants a learner's permit. ${p.guardian.name} (${p.guardian.rel.toLowerCase()}) came along to the licensing office and is waiting in the lobby. Fill out the application completely using only the packet.`,
+  job:p=>`<b>Your task</b><br>${p.first} is applying to Gator Grill for a part-time job. ${p.age<16?"Gator Grill hires 15-year-olds for limited daytime and weekend hours.":"They need closers on weekday evenings."} Answer honestly using only the packet.`,
+  stream:p=>`<b>Your task</b><br>${p.first} wants to binge a show this week. ${p.guardian.name} said the family debit card can be used to start the free trial, with one rule: <i>it can never cost money, and don't give our info away.</i>`
+};
+
+function openForm(id){
+  formId=id;decodes=0;
+  $("#home").hidden=true;$("#resultView").hidden=true;$("#formView").hidden=false;$("#packetBtn").hidden=false;
+  $("#whoLine").textContent=`You are ${persona.first} ${persona.last}, age ${persona.age}`;
+  $("#scenario").innerHTML=SCEN[id](persona)+`<br><span style="font-size:.9rem">Tip: tap <b>Open my packet</b> at the top any time. Tap <b>Decode</b> to see fine print in plain English.</span>`;
+  $("#theForm").innerHTML={permit:permitHTML,job:jobHTML,stream:streamHTML}[id]();
+  renderPacket(persona);window.scrollTo(0,0);
+}
+
+/* ---------- checking ---------- */
+const norm=s=>(s||"").toLowerCase().replace(/[^a-z0-9/ ]/g,"").replace(/\s+/g," ").trim();
+const v=id=>{const el=document.getElementById(id);return el?el.value.trim():""};
+const ck=id=>{const el=document.getElementById(id);return !!(el&&el.checked)};
+const rad=n=>{const el=document.querySelector(`input[name="${n}"]:checked`);return el?el.value:""};
+const digits=s=>(s||"").replace(/\D/g,"");
+const isDate=s=>/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/.test(s);
+const full=p=>norm(p.first+" "+p.last);
+const signedAs=(sig,p)=>{const n=norm(sig);return n.includes(norm(p.first))&&n.includes(norm(p.last))};
+
+function blanks(ids,radios){
+  const miss=ids.filter(i=>!v(i));
+  radios.forEach(r=>{if(!rad(r))miss.push(r+"_wrap")});
+  return miss;
+}
+
+function checkPermit(p){
+  const I=[];
+  const miss=blanks(["p_last","p_first","p_dob","p_height","p_eyes","p_addr","p_city","p_state","p_zip","p_ssn","p_sig","p_sigdate","g_name","g_rel","g_sig","g_date"],["p_sex","p_lens","p_seiz","p_cond"]);
+  if(miss.length)I.push({sev:"stop",f:miss,title:`Returned at the counter: ${miss.length} blank field${miss.length>1?"s":""}`,story:`The clerk glanced at the form, saw empty boxes, and slid it back across the counter. ${p.first} went back to the end of a 45-minute line.`,fix:"Every box marked with a red star has to be filled in before you hand it over. Scan top to bottom one last time."});
+  if(v("p_last")&&norm(v("p_last"))!==norm(p.last)){
+    I.push({sev:"stop",f:["p_last","p_first"],title:"Name in the wrong boxes",story:`The name on the application doesn't match the birth certificate. The record would print as "${v("p_first")} ${v("p_last")}," so the clerk rejected it as a mismatch.`,fix:"Forms almost always ask for LAST name first. Read the label above each box, not just the box order."});
+  }
+  if(v("p_dob")){
+    if(!isDate(v("p_dob")))I.push({sev:"stop",f:["p_dob"],title:"Date of birth in the wrong format",story:`"${v("p_dob")}" isn't MM/DD/YYYY. The computer system won't accept it, so the clerk can't enter your application.`,fix:"When a form shows a format like MM/DD/YYYY, copy it exactly: two-digit month, two-digit day, four-digit year, slashes."});
+    else if(v("p_dob")!==p.dob)I.push({sev:"stop",f:["p_dob"],title:"Date of birth doesn't match the birth certificate",story:"The date you wrote doesn't match the certified document. Identity flag. The application is held for review.",fix:"Copy dates straight from the document. Don't type them from memory."});
+  }
+  if(v("p_ssn")&&digits(v("p_ssn"))!==digits(p.ssn))I.push({sev:"stop",f:["p_ssn"],title:"Social Security Number doesn't match the card",story:"The number didn't verify with the federal database. The application is flagged for identity verification: a 4 to 6 week delay before you can even take the test.",fix:"Read the number off the card digit by digit, then check it a second time."});
+  const docMiss=[["p_doc_id","proof of identity"],["p_doc_ssn","proof of SSN"],["p_doc_res","two proofs of residency"],["p_doc_enr","Certificate of School Enrollment"]].filter(d=>!ck(d[0]));
+  if(docMiss.length)I.push({sev:"stop",f:["p_docs_wrap"],title:"Missing required documents",story:`No ${docMiss.map(d=>d[1]).join(", ")} marked. Under 18 without every document, there is no permit today. Come back another day.`,fix:"Your packet has all four documents. Gather and check off everything before you go. Showing up without one means a wasted trip."});
+  if(rad("p_lens")){
+    if(p.glasses&&rad("p_lens")==="No")I.push({sev:"cost",f:["p_lens_wrap"],title:"Answered the vision question wrong",story:`${p.first} wears glasses but answered "No." Two outcomes: fail the eye test at the counter, or get a permit without the corrective-lens restriction, get pulled over without glasses, and get cited. A false answer on this form is a misdemeanor.`,fix:"Medical questions aren't trick questions. Answer them truthfully. Wearing glasses just adds a restriction; lying can cost you the license."});
+    if(!p.glasses&&rad("p_lens")==="Yes")I.push({sev:"note",f:["p_lens_wrap"],title:"Said you wear glasses when you don't",story:`${p.first}'s permit now says corrective lenses required. Driving without glasses would technically be a violation.`,fix:"Check your vision record before you answer."});
+  }
+  ["p_seiz","p_cond"].forEach(n=>{if(rad(n)==="Yes")I.push({sev:"note",f:[n+"_wrap"],title:"Answered yes to a medical question that doesn't apply",story:"A yes here sends the application to medical review. Expect a 30-day delay and a doctor's form.",fix:"Your packet shows no medical conditions. Read each question all the way to the end before answering."})});
+  if(v("g_sig")&&signedAs(v("g_sig"),p))I.push({sev:"cost",f:["g_sig"],title:`${p.first} signed the guardian's line`,story:`That's signing for someone else on a state document, which is forgery. The application is voided, and the clerk calls ${p.guardian.name} over from the lobby to explain.`,fix:"When a section says 'to be completed by parent or guardian only,' stop and hand the pen to that adult."});
+  else if(v("g_sig")&&norm(v("g_sig"))!==norm(p.guardian.name))I.push({sev:"stop",f:["g_sig"],title:"Guardian signature doesn't match a real guardian",story:"The name signed isn't the guardian on file. Returned.",fix:`Only ${p.guardian.name} can complete Section F.`});
+  if(v("g_name")&&norm(v("g_name"))!==norm(p.guardian.name))I.push({sev:"stop",f:["g_name"],title:"Wrong person listed as guardian",story:"The guardian's name doesn't match the person standing in the lobby with their ID.",fix:"Check the Parent / Guardian card in your packet."});
+  if(v("p_sig")&&!signedAs(v("p_sig"),p))I.push({sev:"stop",f:["p_sig"],title:"Applicant signature isn't your full name",story:"Initials, nicknames, or someone else's name don't count as a legal signature here.",fix:"Sign with your full legal name, the one on your birth certificate."});
+  ["p_sigdate","g_date"].forEach(id=>{if(v(id)&&!isDate(v(id)))I.push({sev:"stop",f:[id],title:"Signature date in the wrong format",story:`"${v(id)}" isn't MM/DD/YYYY. Returned.`,fix:"Today's date, written exactly the way the box asks."})});
+  return I;
+}
+
+function checkJob(p){
+  const I=[];
+  const req=["j_first","j_last","j_phone","j_email","j_addr","j_position","j_emp1","j_ref1","j_ref1rel","j_ref1ph","j_ref2","j_ref2rel","j_ref2ph","j_sig","j_date"];
+  const na=["n/a","na","none","n a"].includes(norm(v("j_emp1")));
+  if(v("j_emp1")&&!na)req.push("j_title1","j_dates1","j_reason1");
+  const miss=blanks(req,["j_age","j_prev"]);
+  if(miss.length)I.push({sev:"stop",f:miss,title:`Skipped: ${miss.length} blank field${miss.length>1?"s":""}`,story:"The manager had 38 applications for 3 openings. Anything with blanks went straight into the 'no' pile without being read.",fix:"If something doesn't apply to you, write N/A. Blank looks like you didn't finish or didn't care."});
+  const days=["mon","tue","wed","thu","fri","sat","sun"],sh=["am","mid","pm"];
+  const checked=[];days.forEach(d=>sh.forEach(s=>{if(ck(`av_${d}_${s}`))checked.push([d,s])}));
+  if(!checked.length)I.push({sev:"stop",f:["j_avail_wrap"],title:"No availability listed",story:"The manager can't schedule someone with no hours. Application skipped.",fix:"Use the schedule card in your packet and check every shift you can truly work."});
+  const school=checked.filter(([d,s])=>["mon","tue","wed","thu","fri"].includes(d)&&s!=="pm");
+  const conflict=checked.filter(([d,s])=>!school.some(x=>x[0]===d&&x[1]===s)&&!(p.allow[d]||[]).includes(s));
+  const lab={mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday",sun:"Sunday"},sl={am:"morning",mid:"midday",pm:"evening"};
+  if(school.length)I.push({sev:"cost",f:school.map(([d,s])=>`av_${d}_${s}`),title:"Said you could work during school hours",story:`${p.first} got hired and scheduled for ${lab[school[0][0]]} ${sl[school[0][1]]}, during class. No-show on the first week. Fired, and marked "not eligible for rehire."`,fix:"Availability is a promise. Only check times you can actually be there, every single week."});
+  if(conflict.length){const [d,s]=conflict[0];I.push({sev:"cost",f:conflict.map(([d,s])=>`av_${d}_${s}`),title:"Checked a shift you can't work",story:`Scheduled for ${lab[d]} ${sl[s]}. ${p.busy[d]||"That time isn't free on the schedule card."} ${p.first} had to call out, then call out again. Hours cut to zero.`,fix:"Check your real schedule before promising time. It's better to offer fewer hours you can keep."})}
+  if(rad("j_age")==="Yes"&&p.age<16)I.push({sev:"cost",f:["j_age_wrap"],title:"Said you're 16 when you're 15",story:`On the first day, the manager checked ID for the new-hire paperwork. ${p.first} is 15. Offer withdrawn for falsifying the application.`,fix:"Employers verify age and identity on day one. Being 15 just limits your hours; lying ends the job."});
+  if(rad("j_age")==="No"&&p.age>=16)I.push({sev:"note",f:["j_age_wrap"],title:"Said you're under 16 when you're 17",story:"The manager filtered you out of the evening shifts you actually wanted.",fix:"Check your birth date and do the math before you answer age questions."});
+  if(rad("j_prev")==="Yes")I.push({sev:"note",f:["j_prev_wrap"],title:"Said you worked here before",story:"The manager searched the system, found nothing, and wondered what else on the form was wrong.",fix:"Read yes/no questions carefully. Nothing in your packet says Gator Grill."});
+  if(v("j_emp1")){
+    if(!p.work&&!na)I.push({sev:"cost",f:["j_emp1"],title:"Listed a job you never had",story:`The manager called "${v("j_emp1")}." Nobody there had heard of ${p.first}. Application rejected for false information.`,fix:"No paid jobs is normal at your age. Write N/A, and mention volunteer work or school activities if there's room."});
+    if(p.work&&(na||!norm(v("j_emp1")).includes("ray")))I.push({sev:"stop",f:["j_emp1"],title:"Left out your real work experience",story:`${p.first} has a summer job on record but didn't list it. The manager chose an applicant with experience instead.`,fix:"Your packet shows Captain Ray's Seafood Shack. Real experience is your strongest selling point. List it."});
+  }
+  const famRefs=[],fakeRefs=[];
+  ["j_ref1","j_ref2"].forEach(id=>{const n=norm(v(id));if(!n)return;
+    if(n.includes(norm(p.last))||n.includes(norm(p.guardian.name.split(" ")[0]))||/mom|dad|grand|aunt|uncle|sister|brother|cousin/.test(n))famRefs.push(id);
+    else if(!p.refs.some(r=>n.includes(norm(r.name.split(" ")[1]))))fakeRefs.push(id)});
+  if(famRefs.length)I.push({sev:"stop",f:famRefs,title:"Listed a family member as a reference",story:"The form said not family. The manager skipped that reference, so you only had one, and the application looked unfinished.",fix:"References are coaches, teachers, past bosses, or volunteer leaders who agreed to vouch for you."});
+  if(fakeRefs.length)I.push({sev:"cost",f:fakeRefs,title:"Reference the manager couldn't verify",story:"The manager called. The person either didn't answer or didn't know who you were. That's worse than having no reference.",fix:"Only list people from your packet who already agreed to be a reference, with their real phone numbers."});
+  if(!ck("j_cert"))I.push({sev:"stop",f:["j_cert_wrap"],title:"Didn't agree to the applicant statement",story:"Without the box checked, the application isn't valid. HR can't process it.",fix:"Read the statement (Decode it if you need to), then check the box."});
+  if(v("j_sig")&&!signedAs(v("j_sig"),p))I.push({sev:"stop",f:["j_sig"],title:"Signature isn't your full name",story:"The signature doesn't match the applicant's name.",fix:"Type your first and last name exactly as on your ID."});
+  if(v("j_date")&&!isDate(v("j_date")))I.push({sev:"stop",f:["j_date"],title:"Date in the wrong format",story:`"${v("j_date")}" isn't MM/DD/YYYY.`,fix:"Match the format printed on the form."});
+  return I;
+}
+
+function checkStream(p){
+  const I=[];
+  const miss=blanks(["s_email","s_pass","s_card"],[]);
+  if(v("s_pass")&&v("s_pass").length<8)miss.push("s_pass");
+  if(!ck("s_terms"))miss.push("s_terms_wrap");
+  if(miss.length)I.push({sev:"stop",f:miss,title:"Account not created",story:"The page reloaded with red error text you scrolled past. No trial started.",fix:"Look for required fields and error messages before you assume something went through."});
+  const plan=rad("s_plan"),price=plan==="basic"?9.99:22.99;
+  if(ck("s_auto")){const tot=(price*8).toFixed(2);
+    I.push({sev:"cost",f:["s_auto_wrap"],title:"Left auto-renew checked",story:`The trial ended on a busy week. ${p.first} forgot to cancel. Eight months later, the family card has been charged $${tot} ($${price} a month) for an app opened twice. Payments are non-refundable.`,fix:"Pre-checked boxes were checked for the company, not for you. Uncheck auto-renew, and set your own reminder anyway."});
+    if(plan!=="basic")I.push({sev:"cost",f:["s_plan_wrap"],title:"Kept the pre-selected Premium plan",story:"The 'Most popular' plan was already selected. It costs $13 more every month than Basic, which would've been fine for watching on a phone.",fix:"When one option is pre-selected and labeled 'popular,' compare prices before accepting it."});
+  }else if(plan!=="basic")I.push({sev:"note",f:["s_plan_wrap"],title:"Premium was pre-selected and you kept it",story:"No charge this time, since auto-renew is off. But if you ever turn it on, you're paying the higher price.",fix:"Notice what a form chose for you before you click."});
+  if(ck("s_share"))I.push({sev:"cost",f:["s_share_wrap"],title:"Agreed to share the family's info",story:`Within two weeks, ${p.guardian.name}'s phone started getting 'exclusive offer' texts, and ${p.first}'s email was on three marketing lists. The guardian's one rule: broken.`,fix:"'Offers you'll love' means 'we sell your contact info.' Uncheck it."});
+  if(!ck("s_remind"))I.push({sev:"note",f:["s_opts_wrap"],title:"Skipped the free reminder",story:"Not a mistake, but it's a free safety net. The company offered to warn you before charges start.",fix:"Take every option that protects you when it costs nothing."});
+  if(!ck("s_arb"))I.push({sev:"note",f:["s_arb"],title:"Didn't opt out of arbitration",story:"If StreamVault ever overcharges the family, you can't sue or join a class action. A private arbitrator decides. The opt-out was right there in Section 4.",fix:"Scroll the whole Terms box. Opt-outs are usually buried in the middle."});
+  if(v("s_email")&&norm(v("s_email"))!==norm(p.email))I.push({sev:"note",f:["s_email"],title:"Email doesn't match your packet",story:"Cancellation instructions and receipts go to that email. If you mistyped it, you'll never see the warning before the charge.",fix:"Copy your email carefully. It's how companies reach you about money."});
+  return I;
+}
+
+/* ---------- submit + results ---------- */
+$("#theForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  document.querySelectorAll(".flagged").forEach(x=>x.classList.remove("flagged"));
+  const issues={permit:checkPermit,job:checkJob,stream:checkStream}[formId](persona);
+  issues.forEach(i=>i.f.forEach(id=>{const el=document.getElementById(id);if(!el)return;
+    const target=/_wrap$/.test(id)?el:(el.closest("td")||el.closest("label.chk")||el.closest(".fld")||el);
+    target.classList.add("flagged")}));
+  const has=s=>issues.some(i=>i.sev===s);
+  const level=has("cost")?"cost":has("stop")?"stop":issues.length?"note":"ok";
+  const V={
+    cost:["This one cost you","The form went through, and that's the problem. Here's what happened next."],
+    stop:["Returned","Nothing went through yet. Here's why it bounced."],
+    note:["Accepted, with a few things to watch",""],
+    ok:["Accepted","Complete, honest, and nothing agreed to by accident. That's exactly how it should go."]}[level];
+  $("#verdict").innerHTML=`<div class="verdict ${level}"><h2>${V[0]}</h2>${V[1]?`<p>${V[1]}</p>`:""}</div>`;
+  const order={cost:0,stop:1,note:2};issues.sort((a,b)=>order[a.sev]-order[b.sev]);
+  const lab={cost:"This costs you",stop:"Sent back",note:"Heads up"};
+  $("#issues").innerHTML=issues.length?issues.map(i=>`<div class="issue ${i.sev}"><span class="pill">${lab[i.sev]}</span><h3>${i.title}</h3><p>${i.story}</p><p class="fix"><b>Next time:</b> ${i.fix}</p></div>`).join("")
+    :`<div class="issue good"><span class="pill">Done right</span><h3>Clean submission</h3><p>You used the packet, filled every required field, and didn't sign or agree to anything you shouldn't have.</p><p class="fix"><b>Try next:</b> run this form as the other person. Their documents change the right answers.</p></div>`;
+  const trapKey=t=>t.replace(new RegExp(persona.first,"g"),"Student").replace(/\d+(\.\d+)?/g,"#");
+  sendToSheet({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),student:$("#stuName").value.trim(),cls:$("#stuClass").value.trim(),
+    persona:persona.first+" "+persona.last,form:FORMS[formId].title,outcome:V[0],
+    problems:issues.filter(i=>i.sev!=="note").length,headsups:issues.filter(i=>i.sev==="note").length,decodes,
+    traps:issues.map(i=>({trap:trapKey(i.title),sev:lab[i.sev]}))});
+  addLog({when:new Date().toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}),person:persona.first,form:FORMS[formId].title,outcome:V[0],problems:issues.filter(i=>i.sev!=="note").length,decodes});
+  $("#formView").hidden=true;$("#resultView").hidden=false;window.scrollTo(0,0);
+});
+$("#fixBtn").onclick=()=>{$("#resultView").hidden=true;$("#formView").hidden=false;const f=document.querySelector(".flagged");if(f)f.scrollIntoView({block:"center"})};
+function goHome(){$("#formView").hidden=true;$("#resultView").hidden=true;$("#home").hidden=false;$("#packetBtn").hidden=true;closeDrawer();renderHome();window.scrollTo(0,0)}
+$("#homeBtn").onclick=goHome;$("#backHome").onclick=goHome;
+loadSign();renderHome();
+})();
+</script>
+
+</body>
+</html>
