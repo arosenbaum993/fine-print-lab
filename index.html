@@ -127,7 +127,12 @@ table.log th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;colo
 .card dt{color:var(--muted);font-size:.8rem}
 .card dd{margin:0;font-family:var(--mono);font-size:.85rem;min-width:0;overflow-wrap:anywhere}
 .card::after{content:"PRACTICE";position:absolute;right:-8px;top:8px;transform:rotate(12deg);font-family:var(--display);font-weight:800;font-size:1.6rem;color:var(--red);opacity:.13;pointer-events:none}
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:25}
+.drawer{box-shadow:-6px 0 18px rgba(0,0,0,.18)}
+@media (min-width:900px){body.packet-open main.wrap,body.packet-open footer.wrap{max-width:none;margin-left:0;margin-right:440px}}
+@media (max-width:899px){
+  .drawer{top:auto;left:0;width:100%;height:46vh;border-left:0;border-top:3px solid var(--ink);padding-top:12px}
+  body.packet-open main{padding-bottom:calc(48vh + 20px)}
+}
 footer{color:var(--muted);font-size:.82rem;padding-block:0 30px}
 @media (prefers-reduced-motion:no-preference){.pick,.btn{transition:border-color .15s,background .15s}}
 </style>
@@ -206,9 +211,8 @@ footer{color:var(--muted);font-size:.82rem;padding-block:0 30px}
 </main>
 <footer class="wrap">Practice site. Every person, business, agency, card, and number here is fictional. The state of "Coastal State" (CS) does not exist.</footer>
 
-<div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" hidden aria-label="Document packet">
-  <div class="top"><h2 style="font-size:1.5rem" id="drawerTitle">Packet</h2><button class="btn ghost" type="button" id="closeDrawer">Close</button></div>
+  <div class="top"><h2 style="font-size:1.5rem" id="drawerTitle">Packet</h2><button class="btn ghost" type="button" id="closeDrawer">Hide</button></div>
   <div id="packet"></div>
 </aside>
 
@@ -314,10 +318,9 @@ function renderPacket(p){
   h+=card("Family Debit Card (on file with guardian's OK)",`<div class="big">Practice Debit •••• 4417</div><div>Guardian's rule: "Use it to start the trial, but this can never cost us money, and don't give our info away."</div>`);
   $("#packet").innerHTML=h;
 }
-function openDrawer(){$("#drawer").hidden=false;$("#scrim").hidden=false;$("#closeDrawer").focus()}
-function closeDrawer(){$("#drawer").hidden=true;$("#scrim").hidden=true}
-$("#packetBtn").onclick=openDrawer;$("#closeDrawer").onclick=closeDrawer;$("#scrim").onclick=closeDrawer;
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
+function openDrawer(){$("#drawer").hidden=false;document.body.classList.add("packet-open");$("#packetBtn").textContent="Hide my packet"}
+function closeDrawer(){$("#drawer").hidden=true;document.body.classList.remove("packet-open");$("#packetBtn").textContent="Open my packet"}
+$("#packetBtn").onclick=()=>{$("#drawer").hidden?openDrawer():closeDrawer()};$("#closeDrawer").onclick=closeDrawer;
 
 /* ---------- form builders ---------- */
 const F=(id,label,w,req=true,type="text",extra="")=>`<div class="fld" style="--w:${w}"><label for="${id}">${label}${req?' <span class="req">*</span>':""}</label><input type="${type}" id="${id}" name="${id}" autocomplete="off" ${extra}></div>`;
@@ -435,7 +438,7 @@ function openForm(id){
   $("#whoLine").textContent=`You are ${persona.first} ${persona.last}, age ${persona.age}`;
   $("#scenario").innerHTML=SCEN[id](persona)+`<br><span style="font-size:.9rem">Tip: tap <b>Open my packet</b> at the top any time. Tap <b>Decode</b> to see fine print in plain English.</span>`;
   $("#theForm").innerHTML={permit:permitHTML,job:jobHTML,stream:streamHTML}[id]();
-  renderPacket(persona);window.scrollTo(0,0);
+  renderPacket(persona);openDrawer();window.scrollTo(0,0);
 }
 
 /* ---------- checking ---------- */
