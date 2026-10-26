@@ -90,6 +90,7 @@ table.log th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;colo
 .linkish{background:none;border:0;padding:0;font:inherit;font-size:.74rem;color:var(--muted);text-decoration:underline;cursor:pointer}
 .cxerr{color:var(--red);font-weight:700;margin:.4em 0}
 .scr select{font:inherit;font-family:var(--mono);padding:4px;background:var(--field);color:var(--ink);border:1px solid var(--fieldline)}
+body.first-try .decode,body.first-try .dhost,body.first-try .plain{display:none!important}
 /* scenario + form */
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:16px}
 .scenario{background:var(--goldSoft);border:1px solid var(--gold);border-radius:6px;padding:14px 16px;margin-bottom:18px}
@@ -266,16 +267,17 @@ const PERSONAS={
     eye:"School vision screening, 09/2026: 20/20 both eyes. No correction needed."}
 };
 const FORMS={
-  permit:{title:"Learner's Permit Application",who:"Coastal State Dept. of Motor Licensing",band:"9th to 10th",tags:["Guardian signature","Documents","Medical questions"]},
-  job:{title:"Team Member Job Application",who:"Gator Grill (restaurant)",band:"9th to 12th",tags:["Availability","Work history","References"]},
-  stream:{title:"Free Trial Signup",who:"StreamVault (streaming app)",band:"9th to 12th",tags:["Auto-renew","Data sharing","Fine print"]},
-  checkout:{title:"Online Store Checkout",who:"Nestly Home (online store)",band:"9th to 12th",tags:["Hidden membership","Add-ons","Order total"]},
-  tickets:{title:"Concert Ticket Checkout",who:"TixNow (ticket site)",band:"9th to 12th",tags:["Hidden fees","Fake timer","Add-ons"]},
-  cancel:{title:"Cancel a Subscription",who:"StreamVault (streaming app)",band:"9th to 12th",tags:["Hidden cancel link","Retention offers","Confirmation"]},
-  gym:{title:"Gym Membership Agreement",who:"FlexZone Fitness",band:"9th to 12th",tags:["Contract length","Hidden fees","Co-signer"]},
-  scam:{title:"Remote Job Onboarding",who:"BrightPath Logistics (text message offer)",band:"9th to 12th",tags:["Job scam","Personal info","Walk away?"]}
+  permit:{title:"Learner's Permit Application",who:"Coastal State Dept. of Motor Licensing",band:"9th to 10th",desc:"Apply for a learner's permit at the licensing office."},
+  job:{title:"Team Member Job Application",who:"Gator Grill (restaurant)",band:"9th to 12th",desc:"Apply for a part-time restaurant job."},
+  stream:{title:"Free Trial Signup",who:"StreamVault (streaming app)",band:"9th to 12th",desc:"Sign up for a streaming app."},
+  checkout:{title:"Online Store Checkout",who:"Nestly Home (online store)",band:"9th to 12th",desc:"Order furniture online for your room."},
+  tickets:{title:"Concert Ticket Checkout",who:"TixNow (ticket site)",band:"9th to 12th",desc:"Buy a ticket to see your favorite band."},
+  cancel:{title:"Cancel a Subscription",who:"StreamVault (streaming app)",band:"9th to 12th",desc:"Cancel a streaming membership."},
+  gym:{title:"Gym Membership Agreement",who:"FlexZone Fitness",band:"9th to 12th",desc:"Join a gym for the winter."},
+  scam:{title:"Remote Job Onboarding",who:"BrightPath Logistics (text message offer)",band:"9th to 12th",desc:"Respond to a job offer you got by text."}
 };
 let persona=null, formId=null, decodes=0;
+const tries={};
 
 /* ---------- storage (per device only) ---------- */
 function getLog(){try{return JSON.parse(localStorage.getItem("fpl-log")||"[]")}catch(e){return[]}}
@@ -306,7 +308,7 @@ function renderHome(){
     <button type="button" class="pick" data-f="${k}" ${persona?"":"disabled"}>
       <span class="meta">${f.who}</span>
       <h3>${f.title}</h3>
-      <span class="tags">${f.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</span>
+      <span>${f.desc}</span>
     </button>`).join("");
   const log=getLog();
   $("#logBox").innerHTML=log.length?`<table class="log"><thead><tr><th>When</th><th>Person</th><th>Form</th><th>Outcome</th><th>Problems</th><th>Decodes</th></tr></thead><tbody>${
@@ -553,7 +555,7 @@ function scamHTML(){return `<div class="doc" style="max-width:720px">
   <div class="row"><div class="fld" style="--w:12"><label for="b_card">Pay $49 starter kit fee with <span class="req">*</span></label><select id="b_card"><option value="">Select</option><option value="4417">Practice Debit •••• 4417 (on file)</option></select></div></div>
   <div class="fld"><label class="chk" id="b_reship_wrap"><input type="checkbox" id="b_reship"> I agree to receive packages for BrightPath at my home address and reship them using the labels provided.</label>
   <label class="chk" id="b_check_wrap"><input type="checkbox" id="b_check"> I agree to deposit my $1,850 equipment check, keep $250 as a signing bonus, and send the remaining $1,600 to our equipment vendor by Zelle within 24 hours.</label>
-  <span class="fine">Equipment check terms${DEC("The check is fake. Your bank makes the money look available for a few days, so you send $1,600 of 'their' money away. Then the check bounces, the bank takes back all $1,850, and the $1,600 you sent was your money, gone for good.")}</span></div>
+  <span class="fine dhost">Equipment check terms${DEC("The check is fake. Your bank makes the money look available for a few days, so you send $1,600 of 'their' money away. Then the check bounces, the bank takes back all $1,850, and the $1,600 you sent was your money, gone for good.")}</span></div>
  </div>
  <div class="submitrow"><button class="btn red" type="submit">Accept offer and start</button><button class="btn ghost" type="button" id="walkBtn">Something's off. Walk away and report it.</button></div>
 </div>`}
@@ -682,7 +684,7 @@ function ticketsHTML(){return `<div class="doc" style="max-width:720px">
    <div class="row">${F("t_email","Email (your mobile tickets are sent here)",12,true,"email")}</div></div>
   <div class="sec"><div class="sechead">Add to your order</div><div class="fld">
    <label class="chk" id="t_ins_wrap"><input type="checkbox" id="t_ins" checked> <span><b>Protect your tickets</b> with TicketGuard for $8.99 per ticket. <span class="fine">Covers documented illness or injury with a physician's statement submitted within 72 hours of the event. Excludes weather, schedule conflicts, and change of plans.</span></span></label>
-   <span class="fine">TicketGuard terms${DEC("You only get money back if you get sick or hurt AND a doctor writes a note AND you send it in within 3 days. If you just can't go, or it rains, you get nothing.")}</span>
+   <span class="fine dhost">TicketGuard terms${DEC("You only get money back if you get sick or hurt AND a doctor writes a note AND you send it in within 3 days. If you just can't go, or it rains, you get nothing.")}</span>
    <label class="chk" id="t_park_wrap"><input type="checkbox" id="t_park" checked> Pre-pay parking: Lot A, $20.00</label>
    <label class="chk" id="t_fast_wrap"><input type="checkbox" id="t_fast"> Fast Lane entry: skip the line, $15.00 per ticket</label></div></div>
   <div class="sec"><div class="sechead">Payment</div><div class="row"><div class="fld" style="--w:12"><label for="t_card">Payment method <span class="req">*</span></label><select id="t_card"><option value="">Select</option><option value="4417">Practice Debit •••• 4417 (on file)</option></select></div></div></div>
@@ -717,7 +719,7 @@ function gymHTML(){return `<div class="doc">
  </div>
  <label class="chk" id="g_renew_wrap"><input type="checkbox" id="g_renew" checked> Prepaid members: automatically renew my prepaid term at the current rate so I never lose access.</label>
  <label class="chk" id="g_pt_wrap"><input type="checkbox" id="g_pt"> <span>Claim 2 FREE personal training sessions! <span class="fine">Members who complete complimentary sessions are enrolled in the Starter Training Package at $79/month unless canceled in writing before the second session.</span></span></label>
- <span class="fine">Training offer terms${DEC("The 2 free sessions aren't really free. Once you use them, you're signed up for personal training at $79 a month unless you cancel in writing before session two.")}</span>
+ <span class="fine dhost">Training offer terms${DEC("The 2 free sessions aren't really free. Once you use them, you're signed up for personal training at $79 a month unless you cancel in writing before session two.")}</span>
  </div></div>
  <div class="sec"><div class="sechead">Section 2 · Member information</div>
   <div class="row">${F("g_last","Last name",4)}${F("g_first","First name",4)}${F("g_dob","Date of birth (MM/DD/YYYY)",4)}</div>
@@ -775,7 +777,8 @@ function openForm(id){
   formId=id;decodes=0;
   $("#home").hidden=true;$("#resultView").hidden=true;$("#formView").hidden=false;$("#packetBtn").hidden=false;
   $("#whoLine").textContent=`You are ${persona.first} ${persona.last}, age ${persona.age}`;
-  $("#scenario").innerHTML=SCEN[id](persona)+`<br><span style="font-size:.9rem">Tip: tap <b>Open my packet</b> at the top any time. Tap <b>Decode</b> to see fine print in plain English.</span>`;
+  $("#scenario").innerHTML=SCEN[id](persona)+(tries[id+persona.id]?`<br><span style="font-size:.9rem"><b>Redo:</b> fix what went wrong. <b>Decode</b> buttons are now turned on, so tap one on any fine print to read it in plain English.</span>`:`<br><span style="font-size:.9rem">Your document packet is on the right. Use it for every answer.</span>`);
+  document.body.classList.toggle("first-try",!tries[id+persona.id]);
   $("#theForm").innerHTML={permit:permitHTML,job:jobHTML,stream:streamHTML,checkout:checkoutHTML,scam:scamHTML,cancel:cancelHTML,tickets:ticketsHTML,gym:gymHTML}[id](persona);
   walkAway=false;
   const tf=$("#theForm"),live={checkout:coSummary,tickets:tkSummary}[id];if(live){live();tf.oninput=tf.onchange=live}else{tf.oninput=tf.onchange=null}
@@ -923,16 +926,19 @@ $("#theForm").addEventListener("submit",e=>{
   const clean=`<div class="issue good"><span class="pill">Done right</span><h3>Clean submission</h3><p>You used the packet, filled every required field, and didn't sign or agree to anything you shouldn't have.</p><p class="fix"><b>Try next:</b> run this form as the other person. Their documents change the right answers.</p></div>`;
   $("#issues").innerHTML=(real.length||issues.verdict?"":clean)+issues.map(i=>`<div class="issue ${i.sev}"><span class="pill">${lab[i.sev]}</span><h3>${i.title}</h3><p>${i.story}</p>${i.fix?`<p class="fix"><b>Next time:</b> ${i.fix}</p>`:""}</div>`).join("")
 ;
+  const attempt=(tries[formId+persona.id]||0)+1;tries[formId+persona.id]=attempt;
+  document.body.classList.remove("first-try");
   const trapKey=t=>t.replace(new RegExp(persona.first,"g"),"Student").replace(/\d+(\.\d+)?/g,"#");
   sendToSheet({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),student:$("#stuName").value.trim(),cls:$("#stuClass").value.trim(),
     persona:persona.first+" "+persona.last,form:FORMS[formId].title,outcome:Vx[0],
-    problems:issues.filter(i=>i.sev==="cost"||i.sev==="stop").length,headsups:issues.filter(i=>i.sev==="note").length,decodes,
+    attempt,problems:issues.filter(i=>i.sev==="cost"||i.sev==="stop").length,headsups:issues.filter(i=>i.sev==="note").length,decodes,
     traps:real.map(i=>({trap:trapKey(i.title),sev:lab[i.sev]}))});
   addLog({when:new Date().toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}),person:persona.first,form:FORMS[formId].title,outcome:Vx[0],problems:issues.filter(i=>i.sev==="cost"||i.sev==="stop").length,decodes});
   walkAway=false;
   $("#formView").hidden=true;$("#resultView").hidden=false;window.scrollTo(0,0);
 });
-$("#fixBtn").onclick=()=>{if(formId==="cancel"||formId==="scam"){openForm(formId);return}$("#resultView").hidden=true;$("#formView").hidden=false;const f=document.querySelector(".flagged");if(f)f.scrollIntoView({block:"center"})};
+$("#fixBtn").onclick=()=>{if(formId==="cancel"||formId==="scam"){openForm(formId);return}
+  const tipEl=$("#scenario span:last-child");if(tipEl)tipEl.innerHTML=`<b>Redo:</b> fix what went wrong. <b>Decode</b> buttons are now turned on, so tap one on any fine print to read it in plain English.`;$("#resultView").hidden=true;$("#formView").hidden=false;const f=document.querySelector(".flagged");if(f)f.scrollIntoView({block:"center"})};
 function goHome(){clearInterval(timerInt);$("#formView").hidden=true;$("#resultView").hidden=true;$("#home").hidden=false;$("#packetBtn").hidden=true;closeDrawer();renderHome();window.scrollTo(0,0)}
 $("#homeBtn").onclick=goHome;$("#backHome").onclick=goHome;
 loadSign();renderHome();
