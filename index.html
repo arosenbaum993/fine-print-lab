@@ -91,6 +91,27 @@ table.log th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;colo
 .cxerr{color:var(--red);font-weight:700;margin:.4em 0}
 .scr select{font:inherit;font-family:var(--mono);padding:4px;background:var(--field);color:var(--ink);border:1px solid var(--fieldline)}
 body.first-try .decode,body.first-try .dhost,body.first-try .plain{display:none!important}
+.mail{border:1px solid var(--line);background:var(--field);border-radius:4px;margin-top:10px}
+.mailhead{padding:10px 12px;border-bottom:1px solid var(--soft);font-size:.88rem;display:grid;gap:2px;overflow-wrap:anywhere}
+.msubj{font-weight:700;font-size:1.05rem;margin-top:4px}
+.mailbody{padding:12px;font-size:.95rem;line-height:1.55;overflow-wrap:anywhere}
+.mail .cxbtns{padding:0 12px 6px}
+.mail.reply{border-left:6px solid var(--slate);margin-bottom:14px}
+.compose{border:2px solid var(--ink);margin-top:16px;background:var(--field)}
+.crow{display:grid;grid-template-columns:64px 1fr;align-items:center;border-bottom:1px solid var(--soft);padding:4px 10px;gap:8px}
+.crow label{font-size:.78rem;font-weight:700;color:var(--muted)}
+.crow input,.crow select{font:inherit;font-size:.92rem;border:0;background:transparent;color:var(--ink);padding:5px 2px;width:100%;min-width:0}
+.compose textarea{display:block;width:100%;border:0;padding:10px 12px;font:inherit;font-size:.95rem;background:transparent;color:var(--ink);resize:vertical;min-height:220px}
+.compose .submitrow{padding:0 12px 12px;margin-top:4px}
+.acwrap{position:relative;min-width:0}
+.aclist{position:absolute;left:0;right:0;top:100%;background:var(--paper);border:1px solid var(--line);z-index:5;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.acitem{display:block;width:100%;text-align:left;font:inherit;font-size:.88rem;padding:7px 10px;background:none;border:0;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.acitem:hover,.acitem:focus{background:var(--slateSoft)}
+.acitem small{color:var(--muted)}
+.starters{margin-top:14px;border:1px solid var(--good);background:var(--goodSoft)}
+.starters ol{margin:.2em 0 .6em;padding-left:1.3em}
+.issue.well{border-left-color:var(--good)}.issue.well .pill{background:var(--goodSoft);color:var(--good)}
+body.first-try .redo-only{display:none!important}
 /* scenario + form */
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:16px}
 .scenario{background:var(--goldSoft);border:1px solid var(--gold);border-radius:6px;padding:14px 16px;margin-bottom:18px}
@@ -205,6 +226,13 @@ footer{color:var(--muted);font-size:.82rem;padding-block:0 30px}
     </section>
 
     <section>
+      <div class="step">Step 3</div>
+      <h2>Write an email</h2>
+      <p class="lede">Read the email in your inbox, write back, and hit Send. The person on the other end will reply.</p>
+      <div class="grid" id="emailGrid"></div>
+    </section>
+
+    <section>
       <div class="step">My record</div>
       <h2>Attempts on this device</h2>
       <div class="logbox" id="logBox"></div>
@@ -274,10 +302,13 @@ const FORMS={
   tickets:{title:"Concert Ticket Checkout",who:"TixNow (ticket site)",band:"9th to 12th",desc:"Buy a ticket to see your favorite band."},
   cancel:{title:"Cancel a Subscription",who:"StreamVault (streaming app)",band:"9th to 12th",desc:"Cancel a streaming membership."},
   gym:{title:"Gym Membership Agreement",who:"FlexZone Fitness",band:"9th to 12th",desc:"Join a gym for the winter."},
-  scam:{title:"Remote Job Onboarding",who:"BrightPath Logistics (text message offer)",band:"9th to 12th",desc:"Respond to a job offer you got by text."}
+  scam:{title:"Remote Job Onboarding",who:"BrightPath Logistics (text message offer)",band:"9th to 12th",desc:"Respond to a job offer you got by text."},
+  callout:{title:"Email Your Manager",who:"Gator Grill (your job)",band:"9th to 12th",desc:"You can't make Saturday's shift. Let your manager know.",email:true},
+  dispute:{title:"Email Customer Support",who:"StreamVault (streaming app)",band:"9th to 12th",desc:"You were charged after you canceled. Ask for your money back.",email:true}
 };
 let persona=null, formId=null, decodes=0;
 const tries={};
+const redoTip=id=>FORMS[id].email?`<b>Redo:</b> fix what went wrong. An email checklist and sentence starters are now turned on above the message.`:`<b>Redo:</b> fix what went wrong. <b>Decode</b> buttons are now turned on, so tap one on any fine print to read it in plain English.`;
 
 /* ---------- storage (per device only) ---------- */
 function getLog(){try{return JSON.parse(localStorage.getItem("fpl-log")||"[]")}catch(e){return[]}}
@@ -304,12 +335,14 @@ function renderHome(){
       <span class="meta">Age ${p.age} · ${p.grade} grade · lives with ${p.guardian.rel.toLowerCase()}</span>
       <span>${p.blurb}</span>
     </button>`).join("");
-  $("#formGrid").innerHTML=Object.entries(FORMS).map(([k,f])=>`
+  const card=([k,f])=>`
     <button type="button" class="pick" data-f="${k}" ${persona?"":"disabled"}>
       <span class="meta">${f.who}</span>
       <h3>${f.title}</h3>
       <span>${f.desc}</span>
-    </button>`).join("");
+    </button>`;
+  $("#formGrid").innerHTML=Object.entries(FORMS).filter(([k,f])=>!f.email).map(card).join("");
+  $("#emailGrid").innerHTML=Object.entries(FORMS).filter(([k,f])=>f.email).map(card).join("");
   const log=getLog();
   $("#logBox").innerHTML=log.length?`<table class="log"><thead><tr><th>When</th><th>Person</th><th>Form</th><th>Outcome</th><th>Problems</th><th>Decodes</th></tr></thead><tbody>${
     log.map(r=>`<tr><td>${r.when}</td><td>${r.person}</td><td>${r.form}</td><td>${r.outcome}</td><td>${r.problems}</td><td>${r.decodes}</td></tr>`).join("")}</tbody></table>`
@@ -318,6 +351,7 @@ function renderHome(){
 document.addEventListener("click",e=>{
   const p=e.target.closest("[data-p]"); if(p){persona=PERSONAS[p.dataset.p];renderHome();return}
   const f=e.target.closest("[data-f]"); if(f&&persona){if(!signedIn())return;openForm(f.dataset.f);return}
+  const mb=e.target.closest("[data-mail]"); if(mb){mailAction(mb.dataset.mail);return}
   if(e.target.closest("#walkBtn")){walkAway=true;$("#theForm").requestSubmit();return}
   const g=e.target.closest("[data-go]"); if(g){const s=g.dataset.go;
     if(s==="5"){if(!v("cx_reason")){$("#cx_err").hidden=false;return}cx.end="done"}
@@ -349,6 +383,7 @@ function renderPacket(p){
   h+=card("Work & Volunteer History",p.work?dl({"Employer":p.work.emp,"Job title":p.work.title,"Dates":p.work.dates,"Reason left":p.work.why}):`<div><b>Paid jobs: none.</b><br>Volunteer: ${p.volunteer}</div>`);
   h+=card("References (they agreed)",p.refs.map(r=>dl({"Name":r.name,"Relationship":r.rel,"Phone":r.phone})).join(""));
   h+=card("Family Debit Card (on file with guardian's OK)",`<div class="big">Practice Debit •••• 4417</div><div>Guardian's rules: "Ask before you spend. Never sign up for anything that charges us every month. Don't give our info away."</div>`);
+  h+=emailPacket(p,formId);
   $("#packet").innerHTML=h;
 }
 function openDrawer(){$("#drawer").hidden=false;document.body.classList.add("packet-open");$("#packetBtn").textContent="Hide my packet"}
@@ -762,7 +797,153 @@ function checkGym(p){
   return I;
 }
 
+
+/* ---------- email writing ---------- */
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const EXTRA={
+  mason:{oldEmail:"masongamer4life@coastmail.com",conflict:"Saturday, Nov 7 is the MCA marching band region competition in Savannah. The bus leaves the school at 10:00 AM and gets back around 9:00 PM."},
+  kayla:{oldEmail:"kaylabear09@coastmail.com",conflict:"Saturday, Nov 7 is Grandma's 80th birthday dinner in Jacksonville. The family leaves at 9:00 AM."}};
+const EM={
+  callout:{
+    contacts:[["Dana Whitaker","dwhitaker88@coastmail.com"],["Dana Whitfield","dana.whitfield@gatorgrill.com"],["Gator Grill Crew","crew214@gatorgrill.com"],["Jordan Ellis","jordan.ellis@coastmail.com"]],
+    right:"dana.whitfield@gatorgrill.com",wrong:"dwhitaker88@coastmail.com",group:"crew214@gatorgrill.com",
+    inbox:p=>({from:["Dana Whitfield","dana.whitfield@gatorgrill.com"],to:"Gator Grill Crew <crew214@gatorgrill.com>",date:"Mon, Nov 2, 8:14 AM",subject:"Schedule for the week of Nov 2",
+      body:`Hey team,<br><br>Next week's schedule is posted in the break room. Here are this weekend's shifts:<br><br>Fri 11/6, 4 PM to 9 PM: Marcus, Tasha, Jordan<br>Sat 11/7, 11 AM to 4 PM: ${p.first}, Brianna, Luis<br>Sat 11/7, 4 PM to 10 PM: Jordan, Tasha, Marcus<br><br>If you can't make a shift, email me directly at least 48 hours ahead, and line up someone to cover if you can. Please don't post call-outs to the whole crew.<br><br>Thanks,<br>Dana Whitfield<br>Shift Manager, Gator Grill #214`}),
+    kw:/shift|saturday|\bsat\b|11\/7|nov|call|cover|off|absen|unable|can.?t|miss/i,
+    subjHint:"Can't work my Saturday 11/7 shift",
+    starters:`"I'm writing to let you know..." · "I'm scheduled to work..." · "I've already asked... and they agreed to..." · "Is it okay if...?" · "Thank you for understanding."`},
+  dispute:{
+    contacts:[["StreamVault Help Center","support@streamvau1t-help.com"],["StreamVault Support","support@streamvault.com"],["StreamVault","no-reply@streamvault.com"]],
+    right:"support@streamvault.com",phish:"support@streamvau1t-help.com",noreply:"no-reply@streamvault.com",
+    inbox:p=>({from:["StreamVault","no-reply@streamvault.com"],to:p.email,date:"Tue, Nov 3, 6:02 AM",subject:"Your StreamVault receipt",
+      body:`Hi ${p.first},<br><br>Thanks for being a StreamVault member!<br><br><b>Premium 4K</b> · Billing period Nov 3 to Dec 2, 2026<br>Amount charged: <b>$22.99</b> to Practice Debit •••• 4417<br><br>Questions about your bill? Contact support@streamvault.com.<br><br><span class="fine" style="color:var(--muted)">This message was sent from an unmonitored mailbox. Replies to this email are not read. StreamVault, Inc.</span>`}),
+    kw:/refund|charge|cancel|bill|cx-?48213/i,
+    subjHint:"Refund request: charged after canceling",
+    starters:`"I'm writing about a charge on my account." · "I canceled my membership on..." · "My confirmation number is..." · "Could you please refund...?" · "Thank you for your help."`}
+};
+function emailPacket(p,id){
+  if(!EM[id])return "";
+  const card=(t,body)=>`<div class="card"><div class="ct">${t}</div>${body}</div>`,x=EXTRA[p.id];
+  let h=card("My email accounts",`<div>Professional: <b>${p.email}</b></div><div>Old account from middle school: ${x.oldEmail}</div>`);
+  if(id==="callout"){
+    h+=card("Family calendar",`<div>${x.conflict}</div>`);
+    h+=card("Text from Jordan Ellis (coworker)",`<div>"Hey, I can take your Saturday 11 to 4 if Dana says it's ok"</div>`);
+  }else{
+    h+=card("Screenshot: StreamVault cancellation, Oct 26, 2026",`<div>"Your membership is canceled. You will not be charged again."</div><div class="big">CX-48213-VQ</div>`);
+    h+=card("Bank app: Practice Debit •••• 4417",`<div>Nov 3 · STREAMVAULT*PREMIUM · <b>-$22.99</b></div>`);
+  }
+  return h;
+}
+function emailHTML(p){const S=EM[formId],m=S.inbox(p),x=EXTRA[p.id];return `<div class="doc" style="max-width:820px">
+ <div class="dochead"><div><div class="agency">CoastMail</div><div class="doctitle">Inbox</div></div><div class="formno">${p.email}</div></div>
+ <div class="mail"><div class="mailhead"><div><b>${m.from[0]}</b> &lt;${m.from[1]}&gt;</div><div>To: ${esc(m.to)}</div><div style="color:var(--muted)">${m.date}</div><div class="msubj">${m.subject}</div></div>
+  <div class="mailbody">${m.body}</div>
+  <div class="cxbtns"><button type="button" class="btn ghost" data-mail="reply">Reply</button><button type="button" class="btn ghost" data-mail="all">Reply all</button><button type="button" class="btn ghost" data-mail="new">New email</button></div></div>
+ <div class="sec starters redo-only"><div class="sechead">Email checklist</div><div class="fld fine"><ol>
+  <li>The right person in To. Check the full address, not just the name.</li><li>A subject line that says what it's about.</li><li>A greeting: "Hi Dana," or "Hello,"</li><li>Your first sentence says why you're writing.</li><li>The facts the reader needs: dates, times, numbers.</li><li>What you're asking for, or how you'll solve the problem.</li><li>Thank them, then sign off with your full name.</li></ol>
+  <b>Sentence starters:</b> ${S.starters}</div></div>
+ <div class="compose" id="compose" hidden>
+  <div class="sechead">New message</div>
+  <div class="crow"><label for="e_from">From</label><select id="e_from"><option>${x.oldEmail}</option><option>${p.email}</option></select></div>
+  <div class="crow"><label for="e_to">To</label><div class="acwrap"><input id="e_to" type="text" autocomplete="off"><div class="aclist" hidden></div></div></div>
+  <div class="crow"><label for="e_cc">Cc</label><div class="acwrap"><input id="e_cc" type="text" autocomplete="off"><div class="aclist" hidden></div></div></div>
+  <div class="crow"><label for="e_subj">Subject</label><input id="e_subj" type="text" autocomplete="off"></div>
+  <textarea id="e_body" rows="11" aria-label="Message"></textarea>
+  <div class="submitrow"><button class="btn red" type="submit">Send</button><span class="muted">Once you click Send, it's gone.</span></div>
+ </div>
+</div>`}
+function mailAction(kind){
+  const S=EM[formId],m=S.inbox(persona);
+  $("#compose").hidden=false;
+  const fromLine=`${m.from[0]} <${m.from[1]}>`;
+  $("#e_to").value=kind==="new"?"":fromLine;
+  $("#e_cc").value=kind==="all"?m.to:"";
+  $("#e_subj").value=kind==="new"?"":"Re: "+m.subject;
+  (kind==="new"?$("#e_to"):$("#e_body")).focus();
+}
+function acShow(input){
+  const list=input.parentElement.querySelector(".aclist");
+  const parts=input.value.split(","),q=parts[parts.length-1].trim().toLowerCase();
+  if(!q){list.hidden=true;return}
+  const hits=EM[formId].contacts.filter(([n,a])=>n.toLowerCase().includes(q)||a.includes(q));
+  if(!hits.length){list.hidden=true;return}
+  list.innerHTML=hits.map(([n,a])=>`<button type="button" class="acitem" data-ac="${esc(n)} <${a}>">${esc(n)} <small>&lt;${a}&gt;</small></button>`).join("");
+  list.hidden=false;
+}
+document.addEventListener("input",e=>{if(e.target.id==="e_to"||e.target.id==="e_cc")acShow(e.target)});
+document.addEventListener("focusout",e=>{if(e.target.id==="e_to"||e.target.id==="e_cc"){const l=e.target.parentElement.querySelector(".aclist");setTimeout(()=>{if(!l.contains(document.activeElement))l.hidden=true},150)}});
+document.addEventListener("mousedown",e=>{const it=e.target.closest(".acitem");if(!it)return;e.preventDefault();
+  const input=it.closest(".acwrap").querySelector("input"),parts=input.value.split(",");parts[parts.length-1]=(parts.length>1?" ":"")+it.dataset.ac;
+  input.value=parts.join(",");it.parentElement.hidden=true;input.focus()});
+document.addEventListener("keydown",e=>{const it=e.target.closest&&e.target.closest(".acitem");if(it&&e.key==="Enter"){e.preventDefault();it.dispatchEvent(new MouseEvent("mousedown",{bubbles:true}))}});
+
+function emailRules(p){
+  const S=EM[formId],I=[],x=EXTRA[p.id];
+  const em=s=>(String(s).toLowerCase().match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/g)||[]);
+  const to=em(v("e_to")),cc=em(v("e_cc")),all=[...to,...cc];
+  const body=$("#e_body")?$("#e_body").value.trim():"",subj=v("e_subj"),from=v("e_from");
+  const words=body.split(/\s+/).filter(Boolean);
+  if($("#compose").hidden){I.push({sev:"stop",f:[],title:"No email written yet",story:"Nothing was sent.",fix:"Click Reply or New email to start writing."});return {I,skip:"blank"}}
+  if(!to.length){I.push({sev:"stop",f:["e_to"],title:"No one to send it to",story:"The email wouldn't send. The To line was empty or had no real email address in it.",fix:"Put the right person's full email address in the To line."});return {I,skip:"blank"}}
+  if(words.length<3){I.push({sev:"stop",f:["e_body"],title:"The message is empty",story:"There's nothing for the reader to read.",fix:"Write the message before you click Send."});return {I,skip:"blank"}}
+  let skip=null;
+  if(formId==="callout"){
+    if(all.includes(S.wrong)&&!all.includes(S.right)){I.push({sev:"cost",f:["e_to"],title:"Sent to the wrong Dana",story:`Autocomplete picked Dana Whitaker, a stranger. Dana Whitfield never heard from ${p.first}. On Saturday at 11:00, ${p.first} was marked a no-call, no-show and taken off next week's schedule.`,fix:"Check the full email address before you send, not just the first name. Dana's work address was at the top of her email."});skip="wrong"}
+    else if(!all.includes(S.right)){I.push({sev:"cost",f:["e_to"],title:"Dana never got it",story:`The email didn't go to Dana's address. On Saturday at 11:00, ${p.first} was marked a no-call, no-show.`,fix:"Dana's address was at the top of her email: dana.whitfield@gatorgrill.com."});skip="miss"}
+    if(all.includes(S.group))I.push({sev:"cost",f:["e_cc"],title:"Hit Reply all",story:`The whole Gator Grill crew got ${p.first}'s email about missing Saturday, even though Dana asked everyone not to send call-outs to the group. Two coworkers replied all with jokes.`,fix:"Reply goes to one person. Reply all goes to everyone on the email. Use Reply all only when everyone needs your answer."});
+  }else{
+    if(all.includes(S.phish)){I.push({sev:"cost",f:["e_to"],title:"Emailed a fake support address",story:"'streamvau1t-help.com' has a number 1 where the L should be. A scammer wrote back within minutes asking for the full card number and the 3-digit code 'to process your refund.'",fix:"Copy support addresses from the company's own email, letter by letter. The receipt said support@streamvault.com."});skip="phish"}
+    else if(all.includes(S.noreply)&&!all.includes(S.right)){I.push({sev:"cost",f:["e_to"],title:"Replied to a no-reply address",story:"The receipt came from no-reply@streamvault.com, and nobody reads that inbox. A week went by with no answer, and the family was charged again in December.",fix:"Read the bottom of the email. It said replies are not read and to contact support@streamvault.com."});skip="noreply"}
+    else if(!all.includes(S.right)){I.push({sev:"cost",f:["e_to"],title:"StreamVault never got it",story:"The email didn't go to StreamVault Support, so no one looked into the charge.",fix:"The receipt said to contact support@streamvault.com."});skip="miss"}
+    if(!skip&&!body.toUpperCase().replace(/[\s-]/g,"").includes("CX48213VQ"))I.push({sev:"cost",f:["e_body"],title:"Left out the confirmation number",story:"Without it, support couldn't verify that you canceled, so the $22.99 charge stayed.",fix:"The confirmation number is your proof. Copy it into the email exactly: CX-48213-VQ."});
+  }
+  if(from===x.oldEmail)I.push({sev:"note",f:["e_from"],title:`Sent from ${x.oldEmail}`,story:`The reader saw "${x.oldEmail.split("@")[0]}" before reading a word. It looked like spam and almost got deleted.`,fix:`Use your professional address for work, school, and business: ${p.email}. The From box was set to the old account.`});
+  if(!subj)I.push({sev:"note",f:["e_subj"],title:"No subject line",story:"It showed up as '(no subject)' in a busy inbox and got opened last.",fix:"Write a short subject that says what the email is about."});
+  else if(!S.kw.test(subj))I.push({sev:"note",f:["e_subj"],title:"Subject line didn't say what it's about",story:`"${esc(subj)}" doesn't tell the reader why you're writing.`,fix:`Try something like: ${S.subjHint}`});
+  const firstLine=(body.split(/\n/).find(l=>l.trim())||"").trim();
+  if(/^hey\b/i.test(firstLine))I.push({sev:"note",f:["e_body"],title:"Started with \"Hey\"",story:"\"Hey\" is how you start a text to a friend. It reads as too casual for a boss or a company.",fix:"Start with \"Hi\" or \"Hello\" and the person's name."});
+  else if(!/^(hi|hello|dear|good (morning|afternoon|evening))\b/i.test(firstLine))I.push({sev:"note",f:["e_body"],title:"No greeting",story:"The email jumped straight in without saying hello.",fix:"Start with a greeting like \"Hi Dana,\" or \"Hello,\" on its own line."});
+  const tail=body.split(/\n/).filter(l=>l.trim()).slice(-3).join(" ").toLowerCase();
+  if(!tail.includes(p.first.toLowerCase()))I.push({sev:"note",f:["e_body"],title:"No sign-off with your name",story:"The reader got to the end and had to guess who wrote it.",fix:`End with "Thank you," and your full name: ${p.first} ${p.last}.`});
+  const slang=(body.match(/\b(u|ur|pls|plz|thx|idk|gonna|wanna|lol|bc|rn|omg|ya|yall|k|kk|tmrw|tmr|bruh|fr|ngl|imma)\b/gi)||[]).map(s=>s.toLowerCase());
+  const emoji=/\p{Extended_Pictographic}/u.test(body);
+  if(slang.length||emoji)I.push({sev:"note",f:["e_body"],title:"Texting language",story:(slang.length?`Words like "${[...new Set(slang)].slice(0,4).join('", "')}" `:"Emoji ")+"read like a text to a friend, not a professional email.",fix:"Spell words out and leave emoji for texts."});
+  if(words.length<25)I.push({sev:"note",f:["e_body"],title:"Too short to be clear",story:`At ${words.length} words, the reader probably has questions you didn't answer.`,fix:"Give the facts the reader needs to act without writing back to you."});
+  if(words.length>250)I.push({sev:"note",f:["e_body"],title:"Too long",story:`At ${words.length} words, the important part gets buried.`,fix:"Say what you need in the first two sentences. Cut anything the reader doesn't need."});
+  return {I,skip};
+}
+async function sendEmail(){
+  const p=persona,{I,skip}=emailRules(p);
+  if(skip==="blank"){finish(I,true);return}
+  const noReply={wrong:"No reply. The email went to a stranger named Dana Whitaker.",miss:"No reply. The email never reached the right person.",phish:`<b>StreamVault Help Center</b> &lt;support@streamvau1t-help.com&gt;<br><br>Hi ${p.first}! We can process your refund right away. Please reply with your full card number, expiration date, and the 3-digit code on the back so we can verify your identity.`,noreply:"No reply. Nobody reads that inbox."};
+  if(skip){I.reply=`<div class="mail reply"><div class="sechead">What happened next</div><div class="mailbody">${noReply[skip]}</div></div>`;
+    I.verdict=["This one cost you","Here's what happened after you hit Send."];finish(I);return}
+  $("#formView").hidden=true;$("#resultView").hidden=false;window.scrollTo(0,0);
+  $("#verdict").innerHTML=`<div class="verdict"><h2>Sent</h2><p>Waiting for a reply...</p></div>`;$("#issues").innerHTML="";
+  let ai=null;
+  if(SHEET_URL){try{
+    const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),35000);
+    const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},signal:ctl.signal,body:JSON.stringify({type:"grade",scenario:formId,
+      student:$("#stuName").value.trim(),cls:$("#stuClass").value.trim(),attempt:(tries[formId+p.id]||0)+1,
+      persona:{first:p.first,last:p.last,email:p.email,guardian:p.guardian.name,conflict:EXTRA[p.id].conflict},
+      from:v("e_from"),to:v("e_to"),cc:v("e_cc"),subject:v("e_subj"),body:$("#e_body").value,flags:I.map(i=>i.title)})});
+    clearTimeout(t);const j=await r.json();if(j&&j.ok&&j.result)ai=j.result;
+  }catch(e){}}
+  if(ai){
+    I.reply=`<div class="mail reply"><div class="sechead">What happened next</div><div class="mailhead"><div><b>${esc(ai.reply_from)}</b></div><div class="msubj">${esc(ai.reply_subject)}</div></div><div class="mailbody">${esc(ai.reply_body).replace(/\n/g,"<br>")}</div></div>`;
+    (Array.isArray(ai.feedback)?ai.feedback:[]).slice(0,3).forEach(f=>I.push({sev:["cost","note","well"].includes(f.sev)?f.sev:"note",f:[],title:esc(f.title),story:esc(f.story),fix:esc(f.fix)}));
+    if(ai.outcome==="fail"&&!I.some(i=>i.sev==="cost"))I.push({sev:"cost",f:[],title:esc(ai.outcome_title||"It didn't work"),story:esc(ai.outcome_story||""),fix:""});
+  }else{
+    I.reply=`<div class="mail reply"><div class="sechead">What happened next</div><div class="mailbody">The reply isn't available right now. Here are the checks the site ran on its own.</div></div>`;
+  }
+  const has=s=>I.some(i=>i.sev===s);
+  I.verdict=has("cost")?["This one cost you","Here's what happened after you hit Send."]:(has("note")||has("stop"))?["Sent, with things to fix","It got there. Here's how to make it stronger."]:["Sent and handled","Clear, professional, and complete. That's exactly how it should go."];
+  finish(I);
+}
+
 const SCEN={
+  callout:p=>`<b>Your task</b><br>${p.first} got hired at Gator Grill. It's Thursday, November 5, and ${p.first} is on the schedule for Saturday, Nov 7, but can't make it. Your packet shows why, and who can cover. Handle it with your manager.`,
+  dispute:p=>`<b>Your task</b><br>${p.first} canceled StreamVault on Oct 26. On Nov 3, the family card was charged $22.99 anyway. ${p.guardian.name} says: <i>Email them and get our money back.</i>`,
   scam:p=>`<b>Your task</b><br>${p.first} got this text after school. ${p.first} doesn't remember applying anywhere called BrightPath, but $28 an hour sounds amazing. Decide what to do: fill out the onboarding, or walk away.`,
   cancel:p=>`<b>Your task</b><br>${p.first} kept StreamVault Premium after the free trial, and it's been $22.99 a month. ${p.guardian.name} says: <i>Cancel it today, before the next charge on Nov 3. Not paused, not discounted. Canceled.</i>`,
   tickets:p=>`<b>Your task</b><br>${p.first}'s favorite band is coming to the Marsh Harbor Amphitheater. ${p.guardian.name} gave ${p.first} $100 for <i>one</i> ticket, everything included, on the family debit card, and will drop ${p.first} off and pick up after the show.`,
@@ -777,9 +958,9 @@ function openForm(id){
   formId=id;decodes=0;
   $("#home").hidden=true;$("#resultView").hidden=true;$("#formView").hidden=false;$("#packetBtn").hidden=false;
   $("#whoLine").textContent=`You are ${persona.first} ${persona.last}, age ${persona.age}`;
-  $("#scenario").innerHTML=SCEN[id](persona)+(tries[id+persona.id]?`<br><span style="font-size:.9rem"><b>Redo:</b> fix what went wrong. <b>Decode</b> buttons are now turned on, so tap one on any fine print to read it in plain English.</span>`:`<br><span style="font-size:.9rem">Your document packet is on the right. Use it for every answer.</span>`);
+  $("#scenario").innerHTML=SCEN[id](persona)+(tries[id+persona.id]?`<br><span style="font-size:.9rem">${redoTip(id)}</span>`:`<br><span style="font-size:.9rem">Your document packet is on the right. Use it for every answer.</span>`);
   document.body.classList.toggle("first-try",!tries[id+persona.id]);
-  $("#theForm").innerHTML={permit:permitHTML,job:jobHTML,stream:streamHTML,checkout:checkoutHTML,scam:scamHTML,cancel:cancelHTML,tickets:ticketsHTML,gym:gymHTML}[id](persona);
+  $("#theForm").innerHTML={permit:permitHTML,job:jobHTML,stream:streamHTML,checkout:checkoutHTML,scam:scamHTML,cancel:cancelHTML,tickets:ticketsHTML,gym:gymHTML,callout:emailHTML,dispute:emailHTML}[id](persona);
   walkAway=false;
   const tf=$("#theForm"),live={checkout:coSummary,tickets:tkSummary}[id];if(live){live();tf.oninput=tf.onchange=live}else{tf.oninput=tf.onchange=null}
   startTimers();
@@ -907,7 +1088,10 @@ function checkCheckout(p){
 $("#theForm").addEventListener("submit",e=>{
   e.preventDefault();
   document.querySelectorAll(".flagged").forEach(x=>x.classList.remove("flagged"));
-  const issues={permit:checkPermit,job:checkJob,stream:checkStream,checkout:checkCheckout,scam:checkScam,cancel:checkCancel,tickets:checkTickets,gym:checkGym}[formId](persona);
+  if(FORMS[formId].email){sendEmail();return}
+  finish({permit:checkPermit,job:checkJob,stream:checkStream,checkout:checkCheckout,scam:checkScam,cancel:checkCancel,tickets:checkTickets,gym:checkGym}[formId](persona));
+});
+function finish(issues,noCount){
   issues.forEach(i=>i.f.forEach(id=>{const el=document.getElementById(id);if(!el)return;
     const target=/_wrap$/.test(id)?el:(el.closest("td")||el.closest("label.chk")||el.closest(".fld")||el);
     target.classList.add("flagged")}));
@@ -920,12 +1104,13 @@ $("#theForm").addEventListener("submit",e=>{
     ok:["Accepted","Complete, honest, and nothing agreed to by accident. That's exactly how it should go."]}[level];
   const Vx=issues.verdict||V;
   $("#verdict").innerHTML=`<div class="verdict ${level}"><h2>${Vx[0]}</h2>${Vx[1]?`<p>${Vx[1]}</p>`:""}</div>`;
-  const order={cost:0,stop:1,note:2,good:3,tip:4};issues.sort((a,b)=>order[a.sev]-order[b.sev]);
-  const lab={cost:"This costs you",stop:"Sent back",note:"Heads up",good:"You caught it",tip:"Did you notice?"};
-  const real=issues.filter(i=>i.sev!=="tip"&&i.sev!=="good");
+  const order={cost:0,stop:1,note:2,well:3,good:3,tip:4};issues.sort((a,b)=>order[a.sev]-order[b.sev]);
+  const lab={cost:"This costs you",stop:"Sent back",note:"Heads up",good:"You caught it",tip:"Did you notice?",well:"Done well"};
+  const real=issues.filter(i=>i.sev!=="tip"&&i.sev!=="good"&&i.sev!=="well");
   const clean=`<div class="issue good"><span class="pill">Done right</span><h3>Clean submission</h3><p>You used the packet, filled every required field, and didn't sign or agree to anything you shouldn't have.</p><p class="fix"><b>Try next:</b> run this form as the other person. Their documents change the right answers.</p></div>`;
-  $("#issues").innerHTML=(real.length||issues.verdict?"":clean)+issues.map(i=>`<div class="issue ${i.sev}"><span class="pill">${lab[i.sev]}</span><h3>${i.title}</h3><p>${i.story}</p>${i.fix?`<p class="fix"><b>Next time:</b> ${i.fix}</p>`:""}</div>`).join("")
+  $("#issues").innerHTML=(issues.reply||"")+(real.length||issues.verdict?"":clean)+issues.map(i=>`<div class="issue ${i.sev}"><span class="pill">${lab[i.sev]}</span><h3>${i.title}</h3><p>${i.story}</p>${i.fix?`<p class="fix"><b>Next time:</b> ${i.fix}</p>`:""}</div>`).join("")
 ;
+  if(noCount){$("#formView").hidden=true;$("#resultView").hidden=false;window.scrollTo(0,0);return}
   const attempt=(tries[formId+persona.id]||0)+1;tries[formId+persona.id]=attempt;
   document.body.classList.remove("first-try");
   const trapKey=t=>t.replace(new RegExp(persona.first,"g"),"Student").replace(/\d+(\.\d+)?/g,"#");
@@ -936,9 +1121,9 @@ $("#theForm").addEventListener("submit",e=>{
   addLog({when:new Date().toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}),person:persona.first,form:FORMS[formId].title,outcome:Vx[0],problems:issues.filter(i=>i.sev==="cost"||i.sev==="stop").length,decodes});
   walkAway=false;
   $("#formView").hidden=true;$("#resultView").hidden=false;window.scrollTo(0,0);
-});
+}
 $("#fixBtn").onclick=()=>{if(formId==="cancel"||formId==="scam"){openForm(formId);return}
-  const tipEl=$("#scenario span:last-child");if(tipEl)tipEl.innerHTML=`<b>Redo:</b> fix what went wrong. <b>Decode</b> buttons are now turned on, so tap one on any fine print to read it in plain English.`;$("#resultView").hidden=true;$("#formView").hidden=false;const f=document.querySelector(".flagged");if(f)f.scrollIntoView({block:"center"})};
+  const tipEl=$("#scenario span:last-child");if(tipEl)tipEl.innerHTML=redoTip(formId);$("#resultView").hidden=true;$("#formView").hidden=false;const f=document.querySelector(".flagged");if(f)f.scrollIntoView({block:"center"})};
 function goHome(){clearInterval(timerInt);$("#formView").hidden=true;$("#resultView").hidden=true;$("#home").hidden=false;$("#packetBtn").hidden=true;closeDrawer();renderHome();window.scrollTo(0,0)}
 $("#homeBtn").onclick=goHome;$("#backHome").onclick=goHome;
 loadSign();renderHome();
