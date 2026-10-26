@@ -69,6 +69,27 @@ table.log th{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;colo
 .sf label{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .sf input{font:inherit;padding:.55em .7em;border:2px solid var(--line);border-radius:4px;background:var(--field);color:var(--ink)}
 .signmsg{color:var(--red);font-weight:700;margin:.6em 0 0}
+.sumbox{border:2px solid var(--ink);padding:10px 12px;margin-top:14px;background:var(--field)}
+.sumbox .sechead{margin:-10px -12px 8px}
+.sumrow{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums;padding:2px 0}
+.sumrow.total{border-top:2px solid var(--ink);font-weight:700;font-size:1.1rem;margin-top:6px;padding-top:6px}
+.sumrow.save{color:var(--good);font-weight:700}
+.sumrow.tiny{font-size:.72rem;color:var(--muted)}
+.yay{background:var(--goodSoft);color:var(--good);font-weight:700;padding:6px 8px;border-radius:4px;margin-top:8px;font-size:.88rem}
+.upsell{border:2px solid var(--gold);background:var(--goldSoft);padding:8px 10px;border-radius:4px;margin:8px}
+.cartrow{display:flex;justify-content:space-between;gap:12px;padding:6px 8px;border-bottom:1px solid var(--soft);font-variant-numeric:tabular-nums}
+.cartrow:last-child{border-bottom:0}
+.cartrow small{display:block;font-family:var(--mono);color:var(--muted);font-size:.72rem}
+.hot{background:var(--redSoft);color:var(--red);font-weight:700;padding:8px 10px;border-radius:4px;margin-bottom:12px}
+.cdown{font-family:var(--mono);font-weight:700;color:var(--red);font-size:1.05rem}
+.smsbox{background:var(--slateSoft);border-radius:14px 14px 14px 4px;padding:10px 14px;margin-bottom:16px;max-width:480px}
+.smsbox .lab{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.smsbox p{margin:.3em 0 0}
+.cxbtns{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 10px}
+.cxh{font-family:var(--body);font-size:1.3rem;margin:.2em 0 .4em}
+.linkish{background:none;border:0;padding:0;font:inherit;font-size:.74rem;color:var(--muted);text-decoration:underline;cursor:pointer}
+.cxerr{color:var(--red);font-weight:700;margin:.4em 0}
+.scr select{font:inherit;font-family:var(--mono);padding:4px;background:var(--field);color:var(--ink);border:1px solid var(--fieldline)}
 /* scenario + form */
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:16px}
 .scenario{background:var(--goldSoft);border:1px solid var(--gold);border-radius:6px;padding:14px 16px;margin-bottom:18px}
@@ -247,7 +268,12 @@ const PERSONAS={
 const FORMS={
   permit:{title:"Learner's Permit Application",who:"Coastal State Dept. of Motor Licensing",band:"9th to 10th",tags:["Guardian signature","Documents","Medical questions"]},
   job:{title:"Team Member Job Application",who:"Gator Grill (restaurant)",band:"9th to 12th",tags:["Availability","Work history","References"]},
-  stream:{title:"Free Trial Signup",who:"StreamVault (streaming app)",band:"9th to 12th",tags:["Auto-renew","Data sharing","Fine print"]}
+  stream:{title:"Free Trial Signup",who:"StreamVault (streaming app)",band:"9th to 12th",tags:["Auto-renew","Data sharing","Fine print"]},
+  checkout:{title:"Online Store Checkout",who:"Nestly Home (online store)",band:"9th to 12th",tags:["Hidden membership","Add-ons","Order total"]},
+  tickets:{title:"Concert Ticket Checkout",who:"TixNow (ticket site)",band:"9th to 12th",tags:["Hidden fees","Fake timer","Add-ons"]},
+  cancel:{title:"Cancel a Subscription",who:"StreamVault (streaming app)",band:"9th to 12th",tags:["Hidden cancel link","Retention offers","Confirmation"]},
+  gym:{title:"Gym Membership Agreement",who:"FlexZone Fitness",band:"9th to 12th",tags:["Contract length","Hidden fees","Co-signer"]},
+  scam:{title:"Remote Job Onboarding",who:"BrightPath Logistics (text message offer)",band:"9th to 12th",tags:["Job scam","Personal info","Walk away?"]}
 };
 let persona=null, formId=null, decodes=0;
 
@@ -290,6 +316,11 @@ function renderHome(){
 document.addEventListener("click",e=>{
   const p=e.target.closest("[data-p]"); if(p){persona=PERSONAS[p.dataset.p];renderHome();return}
   const f=e.target.closest("[data-f]"); if(f&&persona){if(!signedIn())return;openForm(f.dataset.f);return}
+  if(e.target.closest("#walkBtn")){walkAway=true;$("#theForm").requestSubmit();return}
+  const g=e.target.closest("[data-go]"); if(g){const s=g.dataset.go;
+    if(s==="5"){if(!v("cx_reason")){$("#cx_err").hidden=false;return}cx.end="done"}
+    showScr(s);if(s==="b")tkSummary();return}
+  const en=e.target.closest("[data-end]"); if(en){cx.end=en.dataset.end;$("#theForm").requestSubmit();return}
   const d=e.target.closest(".decode"); if(d){
     const box=d.nextElementSibling;
     if(box&&box.classList.contains("plain")){box.hidden=!box.hidden}
@@ -315,7 +346,7 @@ function renderPacket(p){
   h+=card("My Weekly Schedule",`<div>School: Mon to Fri, 8:00 AM to 3:30 PM. Free to work only when listed below.</div>${dl(Object.fromEntries(Object.keys(days).map(d=>[days[d],(p.allow[d]||[]).map(s=>sh[s]).join(", ")||"Not available"])))}<div style="margin-top:6px">${[...new Set(Object.values(p.busy))].join(" ")}</div>`);
   h+=card("Work & Volunteer History",p.work?dl({"Employer":p.work.emp,"Job title":p.work.title,"Dates":p.work.dates,"Reason left":p.work.why}):`<div><b>Paid jobs: none.</b><br>Volunteer: ${p.volunteer}</div>`);
   h+=card("References (they agreed)",p.refs.map(r=>dl({"Name":r.name,"Relationship":r.rel,"Phone":r.phone})).join(""));
-  h+=card("Family Debit Card (on file with guardian's OK)",`<div class="big">Practice Debit •••• 4417</div><div>Guardian's rule: "Use it to start the trial, but this can never cost us money, and don't give our info away."</div>`);
+  h+=card("Family Debit Card (on file with guardian's OK)",`<div class="big">Practice Debit •••• 4417</div><div>Guardian's rules: "Ask before you spend. Never sign up for anything that charges us every month. Don't give our info away."</div>`);
   $("#packet").innerHTML=h;
 }
 function openDrawer(){$("#drawer").hidden=false;document.body.classList.add("packet-open");$("#packetBtn").textContent="Hide my packet"}
@@ -426,9 +457,317 @@ function streamHTML(){return `<div class="doc" style="max-width:620px">
  <div class="submitrow"><button class="btn red" type="submit">Start my free trial</button></div>
 </div>`}
 
+
+const CO={items:[{n:"Hartley 5-Shelf Bookcase, Espresso",p:79.99,sku:"NH-HB5-ESP"},{n:"Arc LED Desk Lamp, Matte Black",p:24.98,sku:"NH-ARC-BLK"}],tax:.07,budget:120,plus:29.99,plusOff:.03,prot:14.99,exp:12.99};
+const money=n=>"$"+n.toFixed(2);
+const r2=n=>Math.round(n*100)/100;
+function coTotals(){
+  const c=id=>{const el=document.getElementById(id);return !!(el&&el.checked)};
+  const shipEl=document.querySelector('input[name="c_ship"]:checked');
+  const sub=r2(CO.items.reduce((a,i)=>a+i.p,0));
+  const plus=c("c_plus"),prot=c("c_prot"),exp=shipEl&&shipEl.value==="exp";
+  const disc=plus?r2(sub*CO.plusOff):0;
+  const taxable=r2(sub-disc+(prot?CO.prot:0));
+  const tax=r2(taxable*CO.tax), ship=exp?CO.exp:0;
+  return {sub,disc,prot:prot?CO.prot:0,tax,ship,plus:plus?CO.plus:0,total:r2(taxable+tax+ship+(plus?CO.plus:0))};
+}
+function coSummary(){
+  const el=document.getElementById("c_summary");if(!el)return;const t=coTotals();
+  el.querySelector(".sumbody").innerHTML=`<div class="sumrow"><span>Subtotal (2 items)</span><span>${money(t.sub)}</span></div>`+
+    (t.disc?`<div class="sumrow save"><span>Nestly Plus savings</span><span>-${money(t.disc)}</span></div>`:"")+
+    (t.prot?`<div class="sumrow"><span>3-Year Protection Plan</span><span>${money(t.prot)}</span></div>`:"")+
+    `<div class="sumrow"><span>Shipping</span><span>${t.ship?money(t.ship):"FREE"}</span></div>`+
+    `<div class="sumrow"><span>Estimated tax</span><span>${money(t.tax)}</span></div>`+
+    (t.plus?`<div class="sumrow tiny"><span>Nestly Plus membership, billed today</span><span>${money(t.plus)}</span></div>`:"")+
+    `<div class="sumrow total"><span>Order total</span><span>${money(t.total)}</span></div>`+
+    (t.disc?`<div class="yay">You're saving ${money(t.disc)} today with Nestly Plus!</div>`:"");
+}
+function checkoutHTML(){return `<div class="doc" style="max-width:760px">
+ <div class="dochead"><div><div class="agency">Nestly Home</div><div class="doctitle">Secure Checkout</div></div><div class="formno">Step 2 of 2<br>Review and place your order</div></div>
+ <div class="sec"><div class="sechead">Your cart</div>
+  ${CO.items.map(i=>`<div class="cartrow"><span>${i.n}<small>SKU ${i.sku} · Qty 1</small></span><span>${money(i.p)}</span></div>`).join("")}
+ </div>
+ <div class="sec"><div class="sechead">Shipping address</div>
+  <div class="row">${F("c_name","Full name",6)}${F("c_phone","Phone",6)}</div>
+  <div class="row">${F("c_addr","Street address",12)}</div>
+  <div class="row">${F("c_city","City",5)}${F("c_state","State",3)}${F("c_zip","ZIP",4)}</div>
+  <div class="row">${F("c_email","Email (for order confirmation and tracking)",12,true,"email")}</div>
+ </div>
+ <div class="sec"><div class="sechead">Delivery speed</div>
+  <div class="fld" id="c_ship_wrap"><div class="opts" style="flex-direction:column;gap:6px">
+   <label><input type="radio" name="c_ship" value="exp" checked> <span><b>Expedited</b> <span class="tag" style="background:var(--goldSoft);color:var(--gold)">Fastest</span><br><span class="fine">Arrives in 2 to 3 business days · $12.99</span></span></label>
+   <label><input type="radio" name="c_ship" value="std"> <span><b>Standard</b><br><span class="fine">Arrives in 5 to 8 business days · FREE</span></span></label>
+  </div></div>
+ </div>
+ <div class="sec"><div class="sechead">Protect your purchase</div>
+  <div class="upsell" id="c_prot_wrap"><label class="chk"><input type="checkbox" id="c_prot" checked> <span><b>Yes, protect my bookcase</b> with a 3-Year Protection Plan for just $14.99.</span></label>
+  <div class="fine" style="margin-top:4px">Plan coverage begins after the manufacturer's 1-year warranty expires. Covers structural defects only. Excludes damage from normal use, relocation, or improper assembly.${DEC("The bookcase already comes with a free 1-year warranty. This plan doesn't start until that runs out, and it doesn't cover the stuff that usually goes wrong, like damage from moving it or putting it together wrong.")}</div></div>
+ </div>
+ <div class="sec"><div class="sechead">Payment</div>
+  <div class="row"><div class="fld" style="--w:12"><label for="c_card">Payment method <span class="req">*</span></label><select id="c_card"><option value="">Select</option><option value="4417">Practice Debit •••• 4417 (on file)</option></select></div></div>
+  <div class="fld">
+   <label class="chk"><input type="checkbox" id="c_bill" checked> Billing address is the same as shipping</label>
+   <label class="chk" id="c_save_wrap"><input type="checkbox" id="c_save" checked> Save this card for faster checkout next time</label>
+  </div>
+  <div class="upsell" id="c_plus_wrap"><label class="chk"><input type="checkbox" id="c_plus" checked> <span><b>Save 3% on today's order with Nestly Plus!</b> Members get exclusive emails, early access to sales, and free returns.</span></label>
+   <div class="fine" style="margin-top:4px">By selecting Nestly Plus, you agree to enroll in a recurring membership. Your first month ($29.99) will be billed today, and your membership will renew automatically each month at $29.99 until you cancel. Cancel online anytime in Account Settings.${DEC("This is not a coupon. It's a monthly subscription. You pay $29.99 today and $29.99 every month after that until you go into your account and cancel. You'd be paying about $30 a month to save about $3 one time.")}</div></div>
+ </div>
+ <div class="sec"><div class="sechead">Stay in touch</div>
+  <div class="fld"><label class="chk" id="c_texts_wrap"><input type="checkbox" id="c_texts" checked> Text me exclusive deals and new arrivals. Msg and data rates may apply. Up to 6 msgs/week.</label></div>
+ </div>
+ <div class="sumbox" id="c_summary"><div class="sechead">Order summary</div><div class="sumbody"></div></div>
+ <div class="fine" style="margin-top:10px">By placing your order, you agree to Nestly Home's Terms of Use and Privacy Policy.</div>
+ <div class="submitrow"><button class="btn red" type="submit">Place order</button><span class="muted">Your card is charged when you click Place order.</span></div>
+</div>`}
+
+
+/* ---------- shared: fake countdown timers + screens ---------- */
+let timerInt=null, walkAway=false, cx={end:null};
+function startTimers(){
+  clearInterval(timerInt);
+  const els=[...document.querySelectorAll("#theForm .cdown")];
+  els.forEach(e=>{e.dataset.left=e.dataset.sec});
+  const fmt=n=>{const h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=n%60;return h?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0")};
+  const tick=()=>els.forEach(e=>{let l=+e.dataset.left-1;if(l<0)l=+e.dataset.sec;e.dataset.left=l;e.textContent=fmt(l)});
+  tick();if(els.length)timerInt=setInterval(tick,1000);
+}
+function showScr(s){document.querySelectorAll("#theForm .scr").forEach(x=>x.hidden=x.dataset.s!==s);window.scrollTo(0,$("#theForm").offsetTop-20)}
+
+/* ---------- job offer scam ---------- */
+function scamHTML(){return `<div class="doc" style="max-width:720px">
+ <div class="smsbox"><div class="lab">Text message · from (205) 555-0911</div><p>Hi! Your resume was selected for a REMOTE Package Quality Inspector role with BrightPath Logistics. $28/hr, flexible hours, no experience needed!! Complete onboarding today to secure your spot: brightpath-careers.co/onboard</p></div>
+ <div class="dochead"><div><div class="agency">BrightPath Logistics · Talent Acquisition</div><div class="doctitle">Employee Onboarding: Remote Package Quality Inspector</div></div><div class="formno">Offer expires in<br><span class="cdown" data-sec="7199">1:59:59</span></div></div>
+ <div class="fine"><p>Congratulations! Based on your profile, you have been pre-approved for immediate hire. No interview is required. Questions? Contact your hiring manager at hr.brightpath.recruit@coastmail.com.</p>
+ <p><b>Job duties:</b> Receive packages at your home address, photograph the contents, relabel them with the prepaid labels we email you, and ship within 24 hours. Pay: $28/hour plus a $300 weekly bonus.</p></div>
+ <div class="sec"><div class="sechead">Section 1 · Personal information</div>
+  <div class="row">${F("b_name","Full legal name",6)}${F("b_dob","Date of birth (MM/DD/YYYY)",6)}</div>
+  <div class="row">${F("b_addr","Home address (packages will be shipped here)",12)}</div>
+  <div class="row">${F("b_ssn","Social Security Number (for payroll)",12)}</div>
+ </div>
+ <div class="sec"><div class="sechead">Section 2 · Instant direct deposit setup</div>
+  <div class="fld fine"><p>To get paid on day one, our payroll system connects directly to your bank. Enter your online banking login below. This connection is secure and encrypted.${DEC("They are asking for the username and password you use to log in to your bank. With those, they can log in as you and move money out. No real employer ever asks for this. Real direct deposit only needs a routing number and account number, and you give it to HR after you're hired.")}</p></div>
+  <div class="row">${F("b_bank","Bank name",4)}${F("b_user","Online banking username",4)}${F("b_pass","Online banking password",4,true,"password")}</div>
+ </div>
+ <div class="sec"><div class="sechead">Section 3 · Equipment and starter kit</div>
+  <div class="fld fine"><p>New inspectors receive a starter kit (label printer, scale, branded tape). A one-time $49 fee is required to ship your kit and is <b>fully reimbursed</b> in your first paycheck.${DEC("You have to pay them before you've earned anything. Real jobs don't charge you to start working. 'Reimbursed later' is how they make it sound safe.")}</p></div>
+  <div class="row"><div class="fld" style="--w:12"><label for="b_card">Pay $49 starter kit fee with <span class="req">*</span></label><select id="b_card"><option value="">Select</option><option value="4417">Practice Debit •••• 4417 (on file)</option></select></div></div>
+  <div class="fld"><label class="chk" id="b_reship_wrap"><input type="checkbox" id="b_reship"> I agree to receive packages for BrightPath at my home address and reship them using the labels provided.</label>
+  <label class="chk" id="b_check_wrap"><input type="checkbox" id="b_check"> I agree to deposit my $1,850 equipment check, keep $250 as a signing bonus, and send the remaining $1,600 to our equipment vendor by Zelle within 24 hours.</label>
+  <span class="fine">Equipment check terms${DEC("The check is fake. Your bank makes the money look available for a few days, so you send $1,600 of 'their' money away. Then the check bounces, the bank takes back all $1,850, and the $1,600 you sent was your money, gone for good.")}</span></div>
+ </div>
+ <div class="submitrow"><button class="btn red" type="submit">Accept offer and start</button><button class="btn ghost" type="button" id="walkBtn">Something's off. Walk away and report it.</button></div>
+</div>`}
+function checkScam(p){
+  const flags=[["You never applied","The text said your resume was selected, but you never applied to BrightPath. Scammers text thousands of numbers at once."],
+    ["Too good to be true","$28 an hour plus a $300 weekly bonus, with no experience and no interview. Real jobs interview you first."],
+    ["Fake urgency","The 2-hour countdown is there so you don't stop, think, or ask an adult."],
+    ["A free email account for HR","A real company's hiring manager uses the company's own email, not a free email account."],
+    ["They wanted your bank password","No employer ever needs your bank login. Direct deposit only needs account and routing numbers, given after you're hired."],
+    ["You pay them first","A $49 'starter kit' fee. Real jobs pay you. They don't charge you to start."],
+    ["Reshipping, plus a check to send back","Reshipping packages and depositing a check to send part of it onward are two of the most common job scams."]];
+  if(walkAway){
+    const I=flags.map(f=>({sev:"good",f:[],title:f[0],story:f[1],fix:""}));
+    I.push({sev:"tip",f:[],title:"In real life, report it",story:"Report job scams at ReportFraud.ftc.gov and on the BBB Scam Tracker. Then block the number and delete the text.",fix:""});
+    I.verdict=["You walked away","Good call. BrightPath Logistics isn't real. Here are the red flags on that page."];
+    return I;
+  }
+  const I=[];let gave=0;
+  if(v("b_ssn")){gave++;I.push({sev:"cost",f:["b_ssn"],title:"Gave your Social Security Number to a scammer",story:`Three weeks later, someone opened a credit card and a phone account in ${p.first}'s name. Fixing stolen identity takes months of phone calls and paperwork.`,fix:"Only give your SSN after you're actually hired by a company you've checked out, usually in person."})}
+  if(v("b_user")||v("b_pass")){gave++;I.push({sev:"cost",f:["b_user","b_pass"],title:"Gave away your bank login",story:"The scammers logged in that night and moved the money out. Banks often won't refund money taken by someone you handed your password to.",fix:"Never type your bank password anywhere except your bank's own app or website."})}
+  if(v("b_card")){gave++;I.push({sev:"cost",f:["b_card"],title:"Paid $49 for a starter kit that never came",story:`$49 came out of ${p.guardian.name}'s debit card. No kit arrived, and the 'hiring manager' stopped answering.`,fix:"If a job asks you to pay to start, it's not a job."})}
+  if(ck("b_reship")){gave++;I.push({sev:"cost",f:["b_reship_wrap"],title:"Agreed to reship packages",story:"Packages bought with stolen credit cards started arriving at the house. When the fraud was traced, the trail led to your address. You never got paid.",fix:"Receiving and reshipping packages for someone you've never met is a scam, every time."})}
+  if(ck("b_check")){gave++;I.push({sev:"cost",f:["b_check_wrap"],title:"Fell for the fake check",story:"The $1,850 check bounced a week after you sent $1,600 by Zelle. The bank pulled the $1,850 back out, the account went negative, and the $1,600 was gone for good.",fix:"Nobody legitimate sends you a check and asks you to send part of it to someone else."})}
+  I.unshift({sev:gave?"cost":"note",f:[],title:"This job was a scam",
+    story:gave?"BrightPath Logistics doesn't exist. Everything you entered went straight to the scammer.":"You clicked accept without entering anything, so nothing was taken. But the scammer now knows your number is real, and the texts will keep coming.",
+    fix:"The red flags: "+flags.map(f=>f[0].toLowerCase()).join("; ")+". The right move was the walk-away button."});
+  if(!gave)I.verdict=["Close call","Nothing was taken this time. Here's what you should have caught."];
+  return I;
+}
+
+/* ---------- cancel a subscription ---------- */
+function cancelHTML(p){cx={end:null};return `<div class="doc" style="max-width:640px">
+ <div class="dochead"><div><div class="agency">StreamVault</div><div class="doctitle">Your Account</div></div><div class="formno">Signed in as<br>${p.email}</div></div>
+ <div class="scr" data-s="0">
+  <div class="sec"><div class="sechead">Membership</div><div class="fld"><b>Premium 4K</b> · $22.99/month<span class="fine">Next charge: Nov 3, 2026 to Practice Debit •••• 4417</span></div></div>
+  <div class="cxbtns"><button type="button" class="btn red" data-go="up">Upgrade to Premium+ with Live Sports</button><button type="button" class="btn ghost" data-go="0">Change plan</button><button type="button" class="btn ghost" data-go="0">Update payment</button></div>
+  <div class="sec"><div class="sechead">Settings</div><div class="fld fine">Profiles · Parental controls · Download quality · Email preferences · Privacy · Help Center</div></div>
+  <p style="margin-top:36px;font-size:.74rem;color:var(--muted)">StreamVault Terms · Privacy · Cookie Preferences · <button type="button" class="linkish" data-go="1">Cancel membership</button> · Gift Cards · Jobs</p>
+ </div>
+ <div class="scr" data-s="up" hidden>
+  <h3 class="cxh">Upgrade to Premium+ with Live Sports</h3><p>Your new rate is $27.99/month starting today. We'll charge the $5.00 difference to Practice Debit •••• 4417 now.</p>
+  <div class="cxbtns"><button type="button" class="btn red" data-end="upgrade">Confirm upgrade</button><button type="button" class="btn ghost" data-go="0">Go back</button></div>
+ </div>
+ <div class="scr" data-s="1" hidden>
+  <h3 class="cxh">Are you sure you want to leave?</h3><p>You'll lose your watch history, the 14 shows on your list, and your profile settings. And you'll miss the season finale of <i>Harbor Lights</i> on Nov 7.</p>
+  <div class="cxbtns"><button type="button" class="btn red" data-end="keep">Keep my membership</button></div>
+  <button type="button" class="linkish" data-go="2">Continue to cancel</button>
+ </div>
+ <div class="scr" data-s="2" hidden>
+  <h3 class="cxh">Wait! A special offer just for you</h3><p><b>50% off for your next 3 months.</b> Just $11.49/month.</p>
+  <p class="fine">After 3 months, your plan renews at the full Premium 4K rate of $22.99/month. Accepting this offer ends your cancellation request.${DEC("If you take the discount, you are NOT canceling. You stay a member, pay half price for 3 months, then go right back to full price every month.")}</p>
+  <div class="cxbtns"><button type="button" class="btn red" data-end="discount">Claim my discount</button></div>
+  <button type="button" class="linkish" data-go="3">No thanks, continue</button>
+ </div>
+ <div class="scr" data-s="3" hidden>
+  <h3 class="cxh">Need a break? Pause instead.</h3><p>Pause your membership for up to 3 months. Keep your list and your watch history.</p>
+  <p class="fine">Your membership resumes and billing restarts automatically at the end of your pause.${DEC("Pausing is not canceling. In 3 months, the charges start again on their own, and you might not remember.")}</p>
+  <div class="cxbtns"><button type="button" class="btn red" data-end="pause">Pause for 3 months</button></div>
+  <button type="button" class="linkish" data-go="4">No, I still want to cancel</button>
+ </div>
+ <div class="scr" data-s="4" hidden>
+  <h3 class="cxh">One last step</h3>
+  <label for="cx_reason" style="font-weight:700">Tell us why you're leaving <span class="req">*</span></label><br>
+  <select id="cx_reason"><option value="">Choose a reason</option><option>Too expensive</option><option>Not watching enough</option><option>Switching services</option><option>Other</option></select>
+  <p class="cxerr" id="cx_err" hidden>Choose a reason to continue.</p>
+  <p class="fine">Your membership is not canceled until you click Finish cancellation.</p>
+  <div class="cxbtns"><button type="button" class="btn red" data-end="back">Go back to watching</button><button type="button" class="btn ghost" data-go="5">Finish cancellation</button></div>
+ </div>
+ <div class="scr" data-s="5" hidden>
+  <h3 class="cxh">Your membership is canceled</h3><p>You can keep watching until Nov 2, 2026. You will not be charged again.</p>
+  <div class="sec"><div class="fld"><span class="lab">Confirmation number</span><span style="font-family:var(--mono);font-size:1.3rem;font-weight:600">CX-48213-VQ</span></div></div>
+  <div class="sec"><div class="row">${F("cx_conf","Write your confirmation number here",12,false)}</div></div>
+  <div class="submitrow"><button class="btn red" type="submit">Done</button></div>
+ </div>
+</div>`}
+function checkCancel(p){
+  const e=cx.end, I=[];
+  const M={
+    upgrade:["Upgraded instead of canceling","The biggest button on the page was an upgrade. $5.00 was charged today, then $27.99 every month.","The cancel link was tiny gray text at the bottom, between 'Cookie Preferences' and 'Gift Cards.' Companies hide it on purpose. Check the footer."],
+    keep:["Never canceled","'Keep my membership' was the big red button. $22.99 was charged on Nov 3, and every month after.","On cancel pages, the button you want is usually the small one. Read every button before you click."],
+    discount:["The discount canceled your cancellation",`Three months at $11.49, then back to $22.99. A year later, ${p.guardian.name} had paid $241.38 for a service you were trying to quit.`,"Retention offers say it in the fine print: 'Accepting this offer ends your cancellation request.' A discount is not a cancellation."],
+    pause:["Paused instead of canceling","The pause ended in February and billing restarted at $22.99 a month. Nobody remembered it was coming.","A pause is not a cancellation. If the goal is canceled, keep clicking past every offer."],
+    back:["Stopped one click short","You picked a reason, then clicked the big 'Go back to watching' button instead of 'Finish cancellation.' The account stayed active, and $22.99 was charged on Nov 3.","You're not done until you see a confirmation screen with a confirmation number."]};
+  if(!e){I.push({sev:"stop",f:[],title:"Didn't finish",story:"The cancellation never got finished, so the membership is still active.",fix:"Keep going until you see a confirmation number."});return I}
+  if(M[e]){I.push({sev:"cost",f:[],title:M[e][0],story:M[e][1],fix:M[e][2]});return I}
+  const conf=norm(v("cx_conf")).replace(/ /g,"");
+  if(conf!=="cx48213vq")I.push({sev:"note",f:["cx_conf"],title:conf?"Confirmation number copied wrong":"Didn't save your confirmation number",story:"On Nov 3, StreamVault charged the card anyway and said it had no record of a cancellation. Without the confirmation number, there was no proof, and the refund took three phone calls.",fix:"Always write down or screenshot the confirmation number, then check the next bank statement."});
+  if(!I.length)I.verdict=["Canceled for good","You got past every offer and saved your proof. That's exactly how it should go."];
+  I.push({sev:"tip",f:[],title:"Count the screens",story:"Canceling took 5 screens and gave you 4 chances to give up. Signing up took 1. That's on purpose. The FTC calls designs like this 'dark patterns.'",fix:""});
+  return I;
+}
+
+/* ---------- concert tickets ---------- */
+const TK={seats:{vip:["VIP Pit",95],res:["Reserved, Sec. 104",65],ga:["General Admission Lawn",45]},svc:11.75,fac:4.5,proc:3.95,ins:8.99,park:20,fast:15,budget:100};
+function tkTotals(){
+  const s=rad("t_seat")||"vip",q=+(v("t_qty")||2),price=TK.seats[s][1];
+  const ins=ck("t_ins")?TK.ins*q:0,park=ck("t_park")?TK.park:0,fast=ck("t_fast")?TK.fast*q:0;
+  return {s,q,price,ins,park,fast,per:r2(price+TK.svc+TK.fac),total:r2(price*q+TK.svc*q+TK.fac*q+TK.proc+ins+park+fast)};
+}
+function tkSummary(){
+  const el=document.getElementById("t_summary");if(!el)return;const t=tkTotals();
+  el.querySelector(".sumbody").innerHTML=`<div class="sumrow"><span>${t.q} × ${TK.seats[t.s][0]}</span><span>${money(t.price*t.q)}</span></div>
+   <div class="sumrow tiny"><span>Service fee (${money(TK.svc)} × ${t.q})</span><span>${money(TK.svc*t.q)}</span></div>
+   <div class="sumrow tiny"><span>Facility charge (${money(TK.fac)} × ${t.q})</span><span>${money(TK.fac*t.q)}</span></div>
+   <div class="sumrow tiny"><span>Order processing fee</span><span>${money(TK.proc)}</span></div>`+
+   (t.ins?`<div class="sumrow"><span>TicketGuard</span><span>${money(t.ins)}</span></div>`:"")+
+   (t.park?`<div class="sumrow"><span>Parking, Lot A</span><span>${money(t.park)}</span></div>`:"")+
+   (t.fast?`<div class="sumrow"><span>Fast Lane entry</span><span>${money(t.fast)}</span></div>`:"")+
+   `<div class="sumrow total"><span>Total</span><span>${money(t.total)}</span></div>`;
+}
+function ticketsHTML(){return `<div class="doc" style="max-width:720px">
+ <div class="dochead"><div><div class="agency">TixNow</div><div class="doctitle">Coastal Lights Tour · Marsh Harbor Amphitheater</div><div class="fine">Saturday, Nov 21 · Doors open 6:00 PM</div></div><div class="formno">Your tickets are held for<br><span class="cdown" data-sec="479">7:59</span></div></div>
+ <div class="scr" data-s="a">
+  <div class="hot">Only 3 left at this price! 214 people are looking at this event right now.</div>
+  <div class="sec" id="t_seat_wrap"><div class="sechead">Choose your tickets</div><div class="fld"><div class="opts" style="flex-direction:column;gap:8px">
+   <label><input type="radio" name="t_seat" value="vip" checked> <span><b>VIP Pit</b> <span class="tag" style="background:var(--redSoft);color:var(--red)">Selling fast</span><br><span class="fine">Standing room, front of stage · $95 each</span></span></label>
+   <label><input type="radio" name="t_seat" value="res"> <span><b>Reserved Seating</b><br><span class="fine">Section 104 · $65 each</span></span></label>
+   <label><input type="radio" name="t_seat" value="ga"> <span><b>General Admission Lawn</b><br><span class="fine">Bring a blanket · $45 each</span></span></label>
+  </div><span class="fine" style="color:var(--muted)">Prices shown do not include fees.</span></div>
+  <div class="row"><div class="fld" style="--w:6" id="t_qty_wrap"><label for="t_qty">Quantity</label><select id="t_qty"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div></div></div>
+  <div class="submitrow"><button type="button" class="btn red" data-go="b">Continue to checkout</button></div>
+ </div>
+ <div class="scr" data-s="b" hidden>
+  <div class="sec"><div class="sechead">Ticket holder</div>
+   <div class="row">${F("t_name","Full name",6)}${F("t_phone","Mobile phone",6)}</div>
+   <div class="row">${F("t_email","Email (your mobile tickets are sent here)",12,true,"email")}</div></div>
+  <div class="sec"><div class="sechead">Add to your order</div><div class="fld">
+   <label class="chk" id="t_ins_wrap"><input type="checkbox" id="t_ins" checked> <span><b>Protect your tickets</b> with TicketGuard for $8.99 per ticket. <span class="fine">Covers documented illness or injury with a physician's statement submitted within 72 hours of the event. Excludes weather, schedule conflicts, and change of plans.</span></span></label>
+   <span class="fine">TicketGuard terms${DEC("You only get money back if you get sick or hurt AND a doctor writes a note AND you send it in within 3 days. If you just can't go, or it rains, you get nothing.")}</span>
+   <label class="chk" id="t_park_wrap"><input type="checkbox" id="t_park" checked> Pre-pay parking: Lot A, $20.00</label>
+   <label class="chk" id="t_fast_wrap"><input type="checkbox" id="t_fast"> Fast Lane entry: skip the line, $15.00 per ticket</label></div></div>
+  <div class="sec"><div class="sechead">Payment</div><div class="row"><div class="fld" style="--w:12"><label for="t_card">Payment method <span class="req">*</span></label><select id="t_card"><option value="">Select</option><option value="4417">Practice Debit •••• 4417 (on file)</option></select></div></div></div>
+  <div class="sumbox" id="t_summary"><div class="sechead">Order summary</div><div class="sumbody"></div></div>
+  <div class="fine" style="margin-top:8px">All sales final. No refunds or exchanges.</div>
+  <div class="submitrow"><button class="btn red" type="submit">Buy tickets</button><button type="button" class="btn ghost" data-go="a">Back to seats</button></div>
+ </div>
+</div>`}
+function checkTickets(p){
+  const I=[], t=tkTotals();
+  const miss=blanks(["t_name","t_phone","t_email","t_card"],[]);
+  if(miss.length){I.push({sev:"stop",f:miss,title:`Order didn't go through: ${miss.length} blank field${miss.length>1?"s":""}`,story:"A red banner popped up: 'Please complete all required fields.' Meanwhile the timer kept running.",fix:"Fill every required field before you click Buy."});return I}
+  if(t.q>1)I.push({sev:"cost",f:["t_qty_wrap"],title:`Bought ${t.q} tickets when you needed 1`,story:`The quantity was already set to 2. You paid ${money(t.per*(t.q-1))} for ${t.q>2?"tickets":"a ticket"} nobody used. All sales final.`,fix:"Check the quantity before you check out. Sites default to 2 because people don't notice."});
+  if(ck("t_ins"))I.push({sev:"cost",f:["t_ins_wrap"],title:"Paid for ticket insurance",story:`${money(t.ins)} for TicketGuard, which only pays if you get sick and send a doctor's note within 72 hours. Most people never collect a dime.`,fix:"Read what insurance actually covers before you buy it."});
+  if(ck("t_park"))I.push({sev:"cost",f:["t_park_wrap"],title:"Paid $20 for parking nobody used",story:`${p.guardian.name} dropped ${p.first} off at the gate. The parking pass was pre-checked.`,fix:"Uncheck every add-on you didn't come to buy."});
+  if(ck("t_fast"))I.push({sev:"cost",f:["t_fast_wrap"],title:"Paid to skip a 20-minute line",story:`${money(t.fast)} for Fast Lane. The regular line moved in about 20 minutes.`,fix:"Ask whether an add-on is worth it before you check it."});
+  if(t.total>TK.budget)I.push({sev:"cost",f:["t_summary"],title:`Went over budget: ${money(t.total)} on a $${TK.budget} limit`,story:`${p.guardian.name}'s card was charged ${money(t.total-TK.budget)} more than agreed.`,fix:(t.s==="vip"?"The VIP Pit was pre-selected, and at $95 it was over budget before fees. ":"")+"Fees get added at checkout, so a ticket's real price is the one on the final screen."});
+  if(norm(v("t_email"))!==norm(p.email))I.push({sev:"cost",f:["t_email"],title:"Tickets went to the wrong email",story:"At the gate, there was nothing to scan. The tickets went to an inbox you can't open. You stood in the box office line and missed the opening act.",fix:"Your email is your ticket. Copy it exactly from your documents."});
+  if(!signedAs(v("t_name"),p))I.push({sev:"note",f:["t_name"],title:"Ticket holder name doesn't match you",story:"Some venues check ID against the ticket name.",fix:"Use your full legal name."});
+  I.push({sev:"tip",f:[],title:"The real price of a ticket",story:`The ${money(t.price)} ticket really cost ${money(t.per)} after the service fee and facility charge, plus ${money(TK.proc)} per order. Those fees only showed up on the last screen.`,fix:""});
+  I.push({sev:"tip",f:[],title:"The timer was fake",story:"The 'tickets held' countdown started over at 7:59 every time it hit zero, and '214 people are looking' never changed. Fake urgency is there to rush you past the fine print.",fix:""});
+  return I;
+}
+
+/* ---------- gym membership ---------- */
+function gymHTML(){return `<div class="doc">
+ <div class="dochead"><div><div class="agency">FlexZone Fitness · Marsh Harbor</div><div class="doctitle">Membership Agreement</div></div><div class="formno">FZ-MA-7 · REV. 01/2026<br>Members under 18 require a<br>parent/guardian co-signer</div></div>
+ <div class="sec" id="g_plan_wrap"><div class="sechead">Section 1 · Choose a membership <span class="req">*</span></div><div class="fld"><div class="opts" style="flex-direction:column;gap:8px">
+  <label><input type="radio" name="g_plan" value="basic" checked> <span><b>Basic: $10/month</b> <span class="tag" style="background:var(--goldSoft);color:var(--gold)">Most popular</span><br><span class="fine">12-month agreement. $29 enrollment fee due today. $49 annual maintenance fee billed 60 days after joining. Early termination fee: $99.</span></span></label>
+  <label><input type="radio" name="g_plan" value="flex"> <span><b>Flex: $19.99/month</b><br><span class="fine">Month to month. No enrollment fee. Cancel with 30 days' written notice.</span></span></label>
+  <label><input type="radio" name="g_plan" value="pre"> <span><b>Prepaid 3 Months: $45</b><br><span class="fine">One payment covers 3 months. No enrollment fee or annual fee.</span></span></label>
+ </div>
+ <label class="chk" id="g_renew_wrap"><input type="checkbox" id="g_renew" checked> Prepaid members: automatically renew my prepaid term at the current rate so I never lose access.</label>
+ <label class="chk" id="g_pt_wrap"><input type="checkbox" id="g_pt"> <span>Claim 2 FREE personal training sessions! <span class="fine">Members who complete complimentary sessions are enrolled in the Starter Training Package at $79/month unless canceled in writing before the second session.</span></span></label>
+ <span class="fine">Training offer terms${DEC("The 2 free sessions aren't really free. Once you use them, you're signed up for personal training at $79 a month unless you cancel in writing before session two.")}</span>
+ </div></div>
+ <div class="sec"><div class="sechead">Section 2 · Member information</div>
+  <div class="row">${F("g_last","Last name",4)}${F("g_first","First name",4)}${F("g_dob","Date of birth (MM/DD/YYYY)",4)}</div>
+  <div class="row">${F("g_addr","Street address",6)}${F("g_city","City",3)}${F("g_zip","ZIP",3)}</div>
+  <div class="row">${F("g_phone","Phone",6)}${F("g_email","Email",6,true,"email")}</div>
+  <div class="row">${F("g_ecname","Emergency contact name",6)}${F("g_ecphone","Emergency contact phone",6)}</div>
+ </div>
+ <div class="sec"><div class="sechead">Section 3 · Cancellation and release of liability</div>
+  <div class="fld fine"><p><b>Cancellation.</b> Agreement memberships may be canceled only by certified mail to FlexZone Member Services or in person at the member's home club. Cancellation takes effect at the end of the following billing cycle. Fees already billed are non-refundable.${DEC("You can't cancel online or by phone. You have to mail a certified letter or go to the gym in person, and they still charge you one more month after that.")}</p>
+  <p><b>Release of liability.</b> Member assumes all risk of injury and releases FlexZone, its employees, and agents from all claims, including claims arising from the negligence of FlexZone staff.${DEC("If you get hurt at the gym, even because an employee messed up, you're agreeing not to sue them.")}</p>
+  <label class="chk" id="g_ack_wrap"><input type="checkbox" id="g_ack"> I have read and agree to the cancellation policy and release of liability. <span class="req">*</span></label></div>
+  <div class="row">${F("g_sig","Member signature (type full legal name)",8)}${F("g_date","Date (MM/DD/YYYY)",4)}</div>
+ </div>
+ <div class="sec"><div class="sechead">Section 4 · Parent / guardian co-signer (members under 18) · To be completed by parent or guardian only</div>
+  <div class="fld fine"><p>I am the parent or legal guardian of the member and agree to be financially responsible for all dues and fees under this agreement.${DEC("The adult who signs is on the hook for the payments. If payments stop, the gym comes after them.")}</p></div>
+  <div class="row">${F("gg_name","Parent / guardian printed name",6)}${F("gg_rel","Relationship to member",6)}</div>
+  <div class="row">${F("gg_sig","Parent / guardian signature",8)}${F("gg_date","Date (MM/DD/YYYY)",4)}</div>
+ </div>
+ <div class="submitrow"><button class="btn red" type="submit">Submit agreement</button><span class="muted">Hand the completed agreement to the front desk.</span></div>
+</div>`}
+function checkGym(p){
+  const I=[];
+  const miss=blanks(["g_last","g_first","g_dob","g_addr","g_city","g_zip","g_phone","g_email","g_ecname","g_ecphone","g_sig","g_date","gg_name","gg_rel","gg_sig","gg_date"],[]);
+  if(!ck("g_ack"))miss.push("g_ack_wrap");
+  if(miss.length)I.push({sev:"stop",f:miss,title:`Handed back at the front desk: ${miss.length} blank field${miss.length>1?"s":""}`,story:"No membership until every required box is complete. The manager slid it back across the counter.",fix:"Fill every starred box, including the agreement checkbox."});
+  const plan=rad("g_plan");
+  if(plan==="basic")I.push({sev:"cost",f:["g_plan_wrap"],title:"Signed a 12-month contract for a 3-month plan",story:"$29 to join, $10 a month, and a $49 'annual maintenance fee' in January. Quitting in February meant a $99 early termination fee plus one more month while the certified letter processed. Total for 3 months of gym: $217.",fix:"'$10 a month' was the headline. The real cost was in the small print under it. Add up every fee for the time you actually need."});
+  if(plan==="flex")I.push({sev:"note",f:["g_plan_wrap"],title:"Month to month worked, but cost more than it had to",story:"The 30 days' notice meant paying for February too: $79.96 for 3 months of use.",fix:"The prepaid plan covered exactly 3 months for $45."});
+  if(plan==="pre"&&ck("g_renew"))I.push({sev:"cost",f:["g_renew_wrap"],title:"The prepaid plan renewed itself",story:`In February, $45 was charged again for 3 more months nobody wanted. Then again in May. ${p.guardian.name} co-signed, so ${p.guardian.name} owed it.`,fix:"Prepaid was the right plan. The pre-checked auto-renew box undid it."});
+  if(ck("g_pt"))I.push({sev:"cost",f:["g_pt_wrap"],title:"'Free' training turned into $79 a month",story:"After the second free session, the Starter Training Package kicked in. Nobody canceled in writing in time, so $79 a month got added on top of the membership.",fix:"'Free' with fine print attached usually isn't. Read the sentence after the word FREE."});
+  if(v("gg_sig")&&signedAs(v("gg_sig"),p))I.push({sev:"cost",f:["gg_sig"],title:`${p.first} signed the co-signer line`,story:`Signing someone else's name on a contract is forgery. The manager voided the agreement and called ${p.guardian.name} over from the lobby.`,fix:"When a section says 'to be completed by parent or guardian only,' hand the pen to that adult."});
+  else if(v("gg_sig")&&norm(v("gg_sig"))!==norm(p.guardian.name))I.push({sev:"stop",f:["gg_sig"],title:"Co-signer signature doesn't match your guardian",story:"The name signed isn't the guardian on file. Returned.",fix:`Only ${p.guardian.name} can sign Section 4.`});
+  if(v("gg_name")&&norm(v("gg_name"))!==norm(p.guardian.name))I.push({sev:"stop",f:["gg_name"],title:"Wrong person listed as co-signer",story:"The co-signer's name doesn't match the adult in the lobby.",fix:"Check the Parent / Guardian card in your packet."});
+  if(v("g_last")&&norm(v("g_last"))!==norm(p.last))I.push({sev:"stop",f:["g_last","g_first"],title:"Name in the wrong boxes",story:"Your first and last names are swapped, so your membership card would print wrong.",fix:"This form asks for LAST name first. Read the label above each box."});
+  if(v("g_dob")&&(!isDate(v("g_dob"))||v("g_dob")!==p.dob))I.push({sev:"stop",f:["g_dob"],title:"Date of birth is wrong or in the wrong format",story:"The front desk couldn't enter it, and age matters on this form because of the co-signer rule.",fix:"Copy it from your birth certificate as MM/DD/YYYY."});
+  if(v("g_ecname")&&(signedAs(v("g_ecname"),p)||digits(v("g_ecphone"))===digits(p.phone)))I.push({sev:"stop",f:["g_ecname","g_ecphone"],title:"Listed yourself as your own emergency contact",story:"If you got hurt on a treadmill, the gym would be calling... you.",fix:"An emergency contact is someone else who can come help, like your parent or guardian."});
+  if(v("g_sig")&&!signedAs(v("g_sig"),p))I.push({sev:"stop",f:["g_sig"],title:"Member signature isn't your full name",story:"Initials and nicknames don't count on a contract.",fix:"Sign with your full legal name."});
+  ["g_date","gg_date"].forEach(id=>{if(v(id)&&!isDate(v(id)))I.push({sev:"stop",f:[id],title:"Date in the wrong format",story:`"${v(id)}" isn't MM/DD/YYYY.`,fix:"Write the date exactly the way the box asks."})});
+  I.push({sev:"tip",f:[],title:"What you agreed to in the waiver",story:"By checking that box, you agreed not to sue FlexZone even if its staff are careless and you get hurt. That's common at gyms. Now you know what it means when you sign one.",fix:""});
+  return I;
+}
+
 const SCEN={
+  scam:p=>`<b>Your task</b><br>${p.first} got this text after school. ${p.first} doesn't remember applying anywhere called BrightPath, but $28 an hour sounds amazing. Decide what to do: fill out the onboarding, or walk away.`,
+  cancel:p=>`<b>Your task</b><br>${p.first} kept StreamVault Premium after the free trial, and it's been $22.99 a month. ${p.guardian.name} says: <i>Cancel it today, before the next charge on Nov 3. Not paused, not discounted. Canceled.</i>`,
+  tickets:p=>`<b>Your task</b><br>${p.first}'s favorite band is coming to the Marsh Harbor Amphitheater. ${p.guardian.name} gave ${p.first} $100 for <i>one</i> ticket, everything included, on the family debit card, and will drop ${p.first} off and pick up after the show.`,
+  gym:p=>`<b>Your task</b><br>${p.first} wants to work out at FlexZone this winter: November, December, and January, then stop in February. ${p.guardian.name} is in the lobby to co-sign (anyone under 18 needs one) and said: <i>Keep it around $15 a month, and don't sign up for anything extra.</i>`,
   permit:p=>`<b>Your task</b><br>${p.first} wants a learner's permit. ${p.guardian.name} (${p.guardian.rel.toLowerCase()}) came along to the licensing office and is waiting in the lobby. Fill out the application completely using only the packet.`,
   job:p=>`<b>Your task</b><br>${p.first} is applying to Gator Grill for a part-time job. ${p.age<16?"Gator Grill hires 15-year-olds for limited daytime and weekend hours.":"They need closers on weekday evenings."} Answer honestly using only the packet.`,
+  checkout:p=>`<b>Your task</b><br>${p.guardian.name} agreed to buy a bookcase and a desk lamp for ${p.first}'s room, and asked ${p.first} to place the order on the family debit card. The rules: <i>no more than $120 total, including tax and shipping. Nothing that charges us every month. It can arrive whenever.</i>`,
   stream:p=>`<b>Your task</b><br>${p.first} wants to binge a show this week. ${p.guardian.name} said the family debit card can be used to start the free trial, with one rule: <i>it can never cost money, and don't give our info away.</i>`
 };
 
@@ -437,7 +776,10 @@ function openForm(id){
   $("#home").hidden=true;$("#resultView").hidden=true;$("#formView").hidden=false;$("#packetBtn").hidden=false;
   $("#whoLine").textContent=`You are ${persona.first} ${persona.last}, age ${persona.age}`;
   $("#scenario").innerHTML=SCEN[id](persona)+`<br><span style="font-size:.9rem">Tip: tap <b>Open my packet</b> at the top any time. Tap <b>Decode</b> to see fine print in plain English.</span>`;
-  $("#theForm").innerHTML={permit:permitHTML,job:jobHTML,stream:streamHTML}[id]();
+  $("#theForm").innerHTML={permit:permitHTML,job:jobHTML,stream:streamHTML,checkout:checkoutHTML,scam:scamHTML,cancel:cancelHTML,tickets:ticketsHTML,gym:gymHTML}[id](persona);
+  walkAway=false;
+  const tf=$("#theForm"),live={checkout:coSummary,tickets:tkSummary}[id];if(live){live();tf.oninput=tf.onchange=live}else{tf.oninput=tf.onchange=null}
+  startTimers();
   renderPacket(persona);openDrawer();window.scrollTo(0,0);
 }
 
@@ -536,36 +878,62 @@ function checkStream(p){
   return I;
 }
 
+
+function checkCheckout(p){
+  const I=[];const t=coTotals();
+  const miss=blanks(["c_name","c_phone","c_addr","c_city","c_state","c_zip","c_email","c_card"],[]);
+  if(miss.length)I.push({sev:"stop",f:miss,title:`Order didn't go through: ${miss.length} blank field${miss.length>1?"s":""}`,story:"The page jumped back to the top with a red banner: 'Please complete all required fields.' Nothing was ordered.",fix:"Scroll the whole checkout before you click Place order. Required fields have a red star."});
+  if(miss.length)return I;
+  if(ck("c_plus"))I.push({sev:"cost",f:["c_plus_wrap"],title:"Signed up for a $29.99 monthly membership",story:`To save ${money(t.disc)} on this order, ${p.first} joined Nestly Plus. $29.99 was charged today, then again every month. Nobody noticed until the bank statement. Six months later: ${money(CO.plus*6)} paid for sale emails.`,fix:"'Save 3% today' was attached to a subscription. When a discount needs you to check a box, read what the box signs you up for. And watch the order total: it jumped by $29.99 when that box was checked."});
+  if(ck("c_prot"))I.push({sev:"cost",f:["c_prot_wrap"],title:"Paid for a protection plan you didn't need",story:"$14.99 plus tax for a plan that only starts after the free 1-year warranty ends, and doesn't cover moving damage or assembly mistakes. That's almost 19% of the bookcase's price.",fix:"Pre-checked add-ons are how stores raise the total. Uncheck anything you didn't come to buy."});
+  if(rad("c_ship")==="exp")I.push({sev:"cost",f:["c_ship_wrap"],title:"Paid $12.99 for shipping speed you didn't need",story:`${p.guardian.name} said it could arrive whenever. Expedited was already selected. That's $12.99 to get a bookcase a few days sooner.`,fix:"Check which shipping option is selected before you pay. Free shipping is often there, just not as the default."});
+  if(t.total>CO.budget)I.push({sev:"cost",f:["c_summary"],title:`Went over budget: ${money(t.total)} on a $${CO.budget} limit`,story:`${p.guardian.name} checked the bank app that night and saw ${money(t.total)}, which is ${money(t.total-CO.budget)} more than agreed. ${p.first} lost permission to use the card.`,fix:"Before you click Place order, read the final total, not the item prices. If it's more than you planned, something got added."});
+  const parts=norm(p.addr).split(" ");
+  const addrBad=v("c_addr")&&!(norm(v("c_addr")).includes(parts[0])&&norm(v("c_addr")).includes(parts[1]));
+  const zipBad=v("c_zip")&&digits(v("c_zip"))!==p.zip;
+  const cityBad=v("c_city")&&norm(v("c_city"))!==norm(p.city);
+  if(addrBad||zipBad||cityBad)I.push({sev:"cost",f:[addrBad&&"c_addr",zipBad&&"c_zip",cityBad&&"c_city"].filter(Boolean),title:"Shipped to the wrong address",story:"The carrier couldn't deliver it. The bookcase went back to the warehouse, and Nestly charged a $25 return shipping fee before refunding the rest. Two weeks lost.",fix:"Copy your address from your documents, one piece at a time. Check the ZIP code twice."});
+  if(v("c_name")&&!signedAs(v("c_name"),p))I.push({sev:"note",f:["c_name"],title:"Name on the order doesn't match",story:"The package label has a name nobody at the house recognizes. Some carriers won't leave it.",fix:"Use your full name as it appears on your documents."});
+  if(v("c_email")&&norm(v("c_email"))!==norm(p.email))I.push({sev:"note",f:["c_email"],title:"Email doesn't match your packet",story:"The receipt, tracking number, and membership billing notices all went to an inbox you don't check.",fix:"Your email is how companies tell you about charges. Copy it exactly."});
+  if(ck("c_save"))I.push({sev:"note",f:["c_save_wrap"],title:"Saved the family card on a store website",story:"If the store's site is ever hacked, that card number is in the leak. It also makes the next purchase one click away.",fix:"Don't save a card that isn't yours, and think twice about saving your own."});
+  if(ck("c_texts"))I.push({sev:"note",f:["c_texts_wrap"],title:"Signed up for marketing texts",story:`${p.first}'s phone now gets up to 6 'deal alert' texts a week.`,fix:"Order updates come by email anyway. Uncheck marketing texts."});
+  return I;
+}
+
 /* ---------- submit + results ---------- */
 $("#theForm").addEventListener("submit",e=>{
   e.preventDefault();
   document.querySelectorAll(".flagged").forEach(x=>x.classList.remove("flagged"));
-  const issues={permit:checkPermit,job:checkJob,stream:checkStream}[formId](persona);
+  const issues={permit:checkPermit,job:checkJob,stream:checkStream,checkout:checkCheckout,scam:checkScam,cancel:checkCancel,tickets:checkTickets,gym:checkGym}[formId](persona);
   issues.forEach(i=>i.f.forEach(id=>{const el=document.getElementById(id);if(!el)return;
     const target=/_wrap$/.test(id)?el:(el.closest("td")||el.closest("label.chk")||el.closest(".fld")||el);
     target.classList.add("flagged")}));
   const has=s=>issues.some(i=>i.sev===s);
-  const level=has("cost")?"cost":has("stop")?"stop":issues.length?"note":"ok";
+  const level=has("cost")?"cost":has("stop")?"stop":has("note")?"note":"ok";
   const V={
     cost:["This one cost you","The form went through, and that's the problem. Here's what happened next."],
     stop:["Returned","Nothing went through yet. Here's why it bounced."],
     note:["Accepted, with a few things to watch",""],
     ok:["Accepted","Complete, honest, and nothing agreed to by accident. That's exactly how it should go."]}[level];
-  $("#verdict").innerHTML=`<div class="verdict ${level}"><h2>${V[0]}</h2>${V[1]?`<p>${V[1]}</p>`:""}</div>`;
-  const order={cost:0,stop:1,note:2};issues.sort((a,b)=>order[a.sev]-order[b.sev]);
-  const lab={cost:"This costs you",stop:"Sent back",note:"Heads up"};
-  $("#issues").innerHTML=issues.length?issues.map(i=>`<div class="issue ${i.sev}"><span class="pill">${lab[i.sev]}</span><h3>${i.title}</h3><p>${i.story}</p><p class="fix"><b>Next time:</b> ${i.fix}</p></div>`).join("")
-    :`<div class="issue good"><span class="pill">Done right</span><h3>Clean submission</h3><p>You used the packet, filled every required field, and didn't sign or agree to anything you shouldn't have.</p><p class="fix"><b>Try next:</b> run this form as the other person. Their documents change the right answers.</p></div>`;
+  const Vx=issues.verdict||V;
+  $("#verdict").innerHTML=`<div class="verdict ${level}"><h2>${Vx[0]}</h2>${Vx[1]?`<p>${Vx[1]}</p>`:""}</div>`;
+  const order={cost:0,stop:1,note:2,good:3,tip:4};issues.sort((a,b)=>order[a.sev]-order[b.sev]);
+  const lab={cost:"This costs you",stop:"Sent back",note:"Heads up",good:"You caught it",tip:"Did you notice?"};
+  const real=issues.filter(i=>i.sev!=="tip"&&i.sev!=="good");
+  const clean=`<div class="issue good"><span class="pill">Done right</span><h3>Clean submission</h3><p>You used the packet, filled every required field, and didn't sign or agree to anything you shouldn't have.</p><p class="fix"><b>Try next:</b> run this form as the other person. Their documents change the right answers.</p></div>`;
+  $("#issues").innerHTML=(real.length||issues.verdict?"":clean)+issues.map(i=>`<div class="issue ${i.sev}"><span class="pill">${lab[i.sev]}</span><h3>${i.title}</h3><p>${i.story}</p>${i.fix?`<p class="fix"><b>Next time:</b> ${i.fix}</p>`:""}</div>`).join("")
+;
   const trapKey=t=>t.replace(new RegExp(persona.first,"g"),"Student").replace(/\d+(\.\d+)?/g,"#");
   sendToSheet({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),student:$("#stuName").value.trim(),cls:$("#stuClass").value.trim(),
-    persona:persona.first+" "+persona.last,form:FORMS[formId].title,outcome:V[0],
-    problems:issues.filter(i=>i.sev!=="note").length,headsups:issues.filter(i=>i.sev==="note").length,decodes,
-    traps:issues.map(i=>({trap:trapKey(i.title),sev:lab[i.sev]}))});
-  addLog({when:new Date().toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}),person:persona.first,form:FORMS[formId].title,outcome:V[0],problems:issues.filter(i=>i.sev!=="note").length,decodes});
+    persona:persona.first+" "+persona.last,form:FORMS[formId].title,outcome:Vx[0],
+    problems:issues.filter(i=>i.sev==="cost"||i.sev==="stop").length,headsups:issues.filter(i=>i.sev==="note").length,decodes,
+    traps:real.map(i=>({trap:trapKey(i.title),sev:lab[i.sev]}))});
+  addLog({when:new Date().toLocaleString([], {month:"numeric",day:"numeric",hour:"numeric",minute:"2-digit"}),person:persona.first,form:FORMS[formId].title,outcome:Vx[0],problems:issues.filter(i=>i.sev==="cost"||i.sev==="stop").length,decodes});
+  walkAway=false;
   $("#formView").hidden=true;$("#resultView").hidden=false;window.scrollTo(0,0);
 });
-$("#fixBtn").onclick=()=>{$("#resultView").hidden=true;$("#formView").hidden=false;const f=document.querySelector(".flagged");if(f)f.scrollIntoView({block:"center"})};
-function goHome(){$("#formView").hidden=true;$("#resultView").hidden=true;$("#home").hidden=false;$("#packetBtn").hidden=true;closeDrawer();renderHome();window.scrollTo(0,0)}
+$("#fixBtn").onclick=()=>{if(formId==="cancel"||formId==="scam"){openForm(formId);return}$("#resultView").hidden=true;$("#formView").hidden=false;const f=document.querySelector(".flagged");if(f)f.scrollIntoView({block:"center"})};
+function goHome(){clearInterval(timerInt);$("#formView").hidden=true;$("#resultView").hidden=true;$("#home").hidden=false;$("#packetBtn").hidden=true;closeDrawer();renderHome();window.scrollTo(0,0)}
 $("#homeBtn").onclick=goHome;$("#backHome").onclick=goHome;
 loadSign();renderHome();
 })();
